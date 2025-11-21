@@ -47,8 +47,12 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // Obter userId do header (preparado para autenticação futura)
+    // Por enquanto usa 'admin' como default
+    const userId = request.headers.get("x-user-id") || "admin";
+
     // Fazer upload para Stream CDN
-    const imageUrl = await uploadChannelImage(buffer, file.name, file.type);
+    const imageUrl = await uploadChannelImage(buffer, file.name, file.type, userId);
 
     return NextResponse.json({
       success: true,

@@ -203,31 +203,34 @@ export async function listMembers(
 /**
  * Faz upload de imagem para o Stream CDN usando o SDK
  * Retorna a URL da imagem hospedada
+ *
+ * @param userId - ID do usuário que está fazendo o upload. Default: 'admin'
+ *                 TODO: Substituir por userId real quando implementar autenticação
  */
 export async function uploadChannelImage(
   file: Buffer,
   fileName: string,
-  contentType: string
+  contentType: string,
+  userId: string = 'admin'
 ): Promise<string> {
   try {
     const client = getStreamChatClient();
 
-    // Converter Buffer para Readable Stream (Node.js)
-    const readable = Readable.from(file);
+    // Criar canal temporário para o upload
+    const tempChannel = client.channel('messaging', `temp-upload-${Date.now()}`);
+    await tempChannel.create();
 
-    // Construir URL completa usando baseURL do client
-    const uploadUrl = `${client.baseURL}/channels/messaging/temp/image`;
-
-    console.log('Upload URL:', uploadUrl);
-    console.log('Client baseURL:', client.baseURL);
-
-    // Usar client.sendFile() com URL completa
-    const response = await client.sendFile(
-      uploadUrl,
-      readable,
+    // Fazer upload da imagem com userId
+    // O parâmetro user é obrigatório para autenticação server-side
+    const response = await tempChannel.sendImage(
+      file,
       fileName,
-      contentType
+      contentType,
+      { id: userId }
     );
+
+    // Remover canal temporário
+    await tempChannel.delete();
 
     return response.file;
   } catch (error) {
