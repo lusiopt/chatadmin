@@ -215,25 +215,13 @@ export async function uploadChannelImage(
     // Converter Buffer para Readable Stream (Node.js)
     const readable = Readable.from(file);
 
-    // Criar canal temporário único para upload
-    const channelId = `temp-upload-${Date.now()}`;
-    const tempChannel = client.channel('messaging', channelId);
-
-    // Criar o canal antes de fazer upload
-    await tempChannel.create();
-
-    // Usar método nativo do SDK
-    const response = await tempChannel.sendImage(
+    // Usar client.sendFile() diretamente sem criar canal temporário
+    const response = await client.sendFile(
+      '/images',  // Endpoint genérico para upload de imagens
       readable,
       fileName,
-      contentType,
-      { id: 'admin' } // User ID para autenticação server-side
+      contentType
     );
-
-    // Deletar canal temporário após upload
-    await tempChannel.delete().catch(() => {
-      // Ignorar erro ao deletar (não crítico)
-    });
 
     return response.file;
   } catch (error) {
