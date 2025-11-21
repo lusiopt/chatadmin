@@ -220,10 +220,13 @@ export async function uploadChannelImage(
     const tempChannel = client.channel('messaging', `temp-upload-${Date.now()}`);
     await tempChannel.create();
 
+    // Converter Buffer para Readable Stream (Node.js)
+    const readable = Readable.from(file);
+
     // Fazer upload da imagem com userId
     // O parâmetro user é obrigatório para autenticação server-side
     const response = await tempChannel.sendImage(
-      file,
+      readable,
       fileName,
       contentType,
       { id: userId }

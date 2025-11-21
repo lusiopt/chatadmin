@@ -187,11 +187,13 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
         canvas.toBlob((blob) => resolve(blob!), 'image/png')
       })
 
-      // Fazer upload para Stream CDN
+      // TODO: Migrar para Supabase Storage em produção
+      // Fazer upload para storage local (temporário)
       const formData = new FormData()
       formData.append('file', blob, `icon-${iconName}.png`)
+      formData.append('type', 'channel-icon')
 
-      const response = await fetch('/api/upload/channel-image', {
+      const response = await fetch('/api/upload/local', {
         method: 'POST',
         body: formData,
       })
@@ -203,7 +205,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 
       const data = await response.json()
 
-      // Salvar a URL retornada pelo Stream CDN
+      // Salvar a URL retornada
       onChange(data.url)
       setIsOpen(false)
     } catch (error) {
@@ -231,14 +233,16 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
     }
     reader.readAsDataURL(file)
 
-    // Fazer upload para Stream CDN
+    // TODO: Migrar para Supabase Storage em produção
+    // Fazer upload para storage local (temporário)
     try {
       setUploading(true)
 
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('type', 'channel-icon')
 
-      const response = await fetch('/api/upload/channel-image', {
+      const response = await fetch('/api/upload/local', {
         method: 'POST',
         body: formData,
       })
@@ -250,7 +254,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 
       const data = await response.json()
 
-      // Salvar a URL retornada pelo Stream CDN
+      // Salvar a URL retornada
       onChange(data.url)
       setIsOpen(false)
       setPreviewUrl(null)
