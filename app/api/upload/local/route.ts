@@ -106,10 +106,21 @@ export async function POST(request: NextRequest) {
     // URL pública do arquivo
     const publicUrl = `/uploads/${config.folder}/${fileName}`;
 
-    // URL completa (para desenvolvimento)
+    // URL completa via proxy HTTPS
+    // Quando acessado via dev.lusio.market/chat, usa HTTPS através do proxy reverso
     const host = request.headers.get("host") || "localhost:3000";
-    const protocol = host.includes("localhost") ? "http" : "http"; // TODO: usar https em produção
-    const fullUrl = `${protocol}://${host}${publicUrl}`;
+
+    let fullUrl: string;
+    if (host.includes("localhost")) {
+      // Ambiente local: usa HTTP direto
+      fullUrl = `http://${host}${publicUrl}`;
+    } else if (host.includes("dev.lusio.market")) {
+      // Ambiente dev: já está atrás do proxy HTTPS
+      fullUrl = `https://${host}${publicUrl}`;
+    } else {
+      // Acesso direto à VM Azure: usa proxy HTTPS da VPS
+      fullUrl = `https://dev.lusio.market${publicUrl}`;
+    }
 
     return NextResponse.json({
       success: true,
