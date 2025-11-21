@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -52,6 +53,13 @@ interface Member {
   created_at?: string
 }
 
+interface User {
+  id: string
+  name: string
+  image?: string
+  role?: string
+}
+
 export default function ChannelDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -64,7 +72,10 @@ export default function ChannelDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false)
-  const [newMemberId, setNewMemberId] = useState("")
+  const [availableUsers, setAvailableUsers] = useState<User[]>([])
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = useState("")
+  const [loadingUsers, setLoadingUsers] = useState(false)
 
   const [formData, setFormData] = useState({
     name: "",
@@ -113,6 +124,63 @@ export default function ChannelDetailsPage() {
     }
   }
 
+  const loadAvailableUsers = async () => {
+    try {
+      setLoadingUsers(true)
+      const response = await fetch('/api/users')
+
+      if (response.ok) {
+        const data = await response.json()
+        // Filtrar usuários que já são membros
+        const memberIds = new Set(members.map(m => m.user_id))
+        const usersNotInChannel = data.users.filter((u: User) => !memberIds.has(u.id))
+        setAvailableUsers(usersNotInChannel)
+      }
+    } catch (err) {
+      console.error("Erro ao carregar usuários:", err)
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
+
+  // Carregar usuários quando o modal abrir
+  useEffect(() => {
+    if (isAddMemberDialogOpen) {
+      loadAvailableUsers()
+      setSelectedUserIds(new Set())
+      setSearchQuery("")
+    }
+  }, [isAddMemberDialogOpen, members])
+
+  const toggleUserSelection = (userId: string) => {
+    const newSelection = new Set(selectedUserIds)
+    if (newSelection.has(userId)) {
+      newSelection.delete(userId)
+    } else {
+      newSelection.add(userId)
+    }
+    setSelectedUserIds(newSelection)
+  }
+
+  const toggleSelectAll = () => {
+    const filteredUsers = getFilteredUsers()
+    if (selectedUserIds.size === filteredUsers.length) {
+      setSelectedUserIds(new Set())
+    } else {
+      setSelectedUserIds(new Set(filteredUsers.map(u => u.id)))
+    }
+  }
+
+  const getFilteredUsers = () => {
+    if (!searchQuery.trim()) return availableUsers
+
+    const query = searchQuery.toLowerCase()
+    return availableUsers.filter(user =>
+      user.id.toLowerCase().includes(query) ||
+      user.name.toLowerCase().includes(query)
+    )
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -140,8 +208,8 @@ export default function ChannelDetailsPage() {
   }
 
   const handleAddMember = async () => {
-    if (!newMemberId.trim()) {
-      alert("Digite um ID de usuário válido")
+    if (selectedUserIds.size === 0) {
+      alert("Selecione pelo menos um usuário")
       return
     }
 
@@ -151,18 +219,19 @@ export default function ChannelDetailsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_ids: [newMemberId] }),
+        body: JSON.stringify({ user_ids: Array.from(selectedUserIds) }),
       })
 
       if (!response.ok) {
-        throw new Error("Erro ao adicionar membro")
+        throw new Error("Erro ao adicionar membros")
       }
 
       await loadMembers()
-      setNewMemberId("")
+      setSelectedUserIds(new Set())
       setIsAddMemberDialogOpen(false)
+      alert(`${selectedUserIds.size} membro(s) adicionado(s) com sucesso!`)
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erro ao adicionar membro")
+      alert(err instanceof Error ? err.message : "Erro ao adicionar membros")
     }
   }
 
@@ -327,24 +396,78 @@ export default function ChannelDetailsPage() {
                 <DialogTrigger asChild>
                   <Button size="sm">Adicionar Membro</Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl max-h-[80vh]">
                   <DialogHeader>
-                    <DialogTitle>Adicionar Membro</DialogTitle>
+                    <DialogTitle>Adicionar Membros</DialogTitle>
                     <DialogDescription>
-                      Digite o ID do usuário para adicionar ao canal
+                      Selecione os usuários que deseja adicionar ao canal
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
+
+                  <div className="space-y-4">
+                    {/* Campo de busca */}
                     <div className="grid gap-2">
-                      <Label htmlFor="member-id">ID do Usuário</Label>
+                      <Label htmlFor="search-users">Buscar Usuários</Label>
                       <Input
-                        id="member-id"
-                        placeholder="ex: user123"
-                        value={newMemberId}
-                        onChange={(e) => setNewMemberId(e.target.value)}
+                        id="search-users"
+                        placeholder="Buscar por ID ou nome..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
+
+                    {/* Lista de usuários com checkboxes */}
+                    <div className="border rounded-lg">
+                      <div className="border-b p-3 bg-muted/50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="select-all"
+                            checked={selectedUserIds.size > 0 && selectedUserIds.size === getFilteredUsers().length}
+                            onCheckedChange={toggleSelectAll}
+                          />
+                          <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                            Selecionar todos ({selectedUserIds.size} selecionados)
+                          </Label>
+                        </div>
+                      </div>
+
+                      <div className="max-h-[400px] overflow-y-auto">
+                        {loadingUsers ? (
+                          <div className="p-8 text-center text-muted-foreground">
+                            Carregando usuários...
+                          </div>
+                        ) : getFilteredUsers().length === 0 ? (
+                          <div className="p-8 text-center text-muted-foreground">
+                            {searchQuery ? "Nenhum usuário encontrado" : "Nenhum usuário disponível"}
+                          </div>
+                        ) : (
+                          getFilteredUsers().map((user) => (
+                            <div
+                              key={user.id}
+                              className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
+                              onClick={() => toggleUserSelection(user.id)}
+                            >
+                              <Checkbox
+                                id={`user-${user.id}`}
+                                checked={selectedUserIds.has(user.id)}
+                                onCheckedChange={() => toggleUserSelection(user.id)}
+                              />
+                              <div className="flex-1">
+                                <p className="font-medium">{user.name}</p>
+                                <p className="text-sm text-muted-foreground font-mono">{user.id}</p>
+                              </div>
+                              {user.role && (
+                                <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium">
+                                  {user.role}
+                                </span>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </div>
+
                   <DialogFooter>
                     <Button
                       variant="outline"
@@ -352,7 +475,12 @@ export default function ChannelDetailsPage() {
                     >
                       Cancelar
                     </Button>
-                    <Button onClick={handleAddMember}>Adicionar</Button>
+                    <Button
+                      onClick={handleAddMember}
+                      disabled={selectedUserIds.size === 0}
+                    >
+                      Adicionar {selectedUserIds.size > 0 && `(${selectedUserIds.size})`}
+                    </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>

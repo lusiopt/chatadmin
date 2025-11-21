@@ -201,6 +201,28 @@ export async function listMembers(
 }
 
 /**
+ * Lista todos os usuários do Stream Chat
+ */
+export async function listUsers(
+  filters: Record<string, any> = {},
+  sort: Record<string, number> = { created_at: -1 },
+  options = { limit: 100 }
+): Promise<any[]> {
+  const client = getStreamChatClient();
+
+  const response = await client.queryUsers(filters, sort, options);
+
+  return response.users.map(user => ({
+    id: user.id,
+    name: user.name || user.id,
+    image: user.image,
+    role: user.role,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  }));
+}
+
+/**
  * Faz upload de imagem para o Stream CDN usando o SDK
  * Retorna a URL da imagem hospedada
  *
