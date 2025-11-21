@@ -205,12 +205,12 @@ export async function listMembers(
  */
 export async function listUsers(
   filters: Record<string, any> = {},
-  sort: Record<string, number> = { created_at: -1 },
+  sort = [{ created_at: -1 }],
   options = { limit: 100 }
 ): Promise<any[]> {
   const client = getStreamChatClient();
 
-  const response = await client.queryUsers(filters, sort, options);
+  const response = await client.queryUsers(filters, sort as any, options);
 
   return response.users.map(user => ({
     id: user.id,
