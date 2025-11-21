@@ -1,4 +1,5 @@
 import { StreamChat, Channel, ChannelSort, ChannelFilters } from 'stream-chat';
+import { Readable } from 'stream';
 
 const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY!;
 const secret = process.env.STREAM_SECRET!;
@@ -212,7 +213,6 @@ export async function uploadChannelImage(
     const client = getStreamChatClient();
 
     // Converter Buffer para Readable Stream (Node.js)
-    const { Readable } = await import('stream');
     const readable = Readable.from(file);
 
     // Criar canal temporário para upload
