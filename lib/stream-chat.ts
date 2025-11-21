@@ -218,6 +218,9 @@ export async function uploadChannelImage(
     // Construir URL completa usando baseURL do client
     const uploadUrl = `${client.baseURL}/channels/messaging/temp/image`;
 
+    console.log('Upload URL:', uploadUrl);
+    console.log('Client baseURL:', client.baseURL);
+
     // Usar client.sendFile() com URL completa
     const response = await client.sendFile(
       uploadUrl,
