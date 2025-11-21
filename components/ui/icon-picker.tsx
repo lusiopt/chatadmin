@@ -105,6 +105,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   const [mode, setMode] = React.useState<"icon" | "upload">("icon")
   const [uploading, setUploading] = React.useState(false)
   const [previewUrl, setPreviewUrl] = React.useState<string | null>(null)
+  const [imageError, setImageError] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const selectedIcon = AVAILABLE_ICONS.find(icon => icon.name === value)
@@ -112,6 +113,11 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
 
   // Detecta se o value é uma URL de imagem
   const isImageUrl = value && (value.startsWith('http') || value.startsWith('data:'))
+
+  // Reset error quando value mudar
+  React.useEffect(() => {
+    setImageError(false)
+  }, [value])
 
   const handleIconSelect = async (iconName: string) => {
     try {
@@ -268,20 +274,25 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
               className="w-full justify-start"
             >
               <div className="flex items-center gap-2">
-                {isImageUrl ? (
+                {isImageUrl && !imageError ? (
                   <img
                     src={value}
                     alt="Ícone do canal"
                     className="w-6 h-6 rounded-full object-cover"
+                    onError={() => setImageError(true)}
                   />
+                ) : imageError ? (
+                  <Camera className="w-6 h-6 text-muted-foreground" />
                 ) : SelectedIconComponent ? (
                   <SelectedIconComponent className="w-6 h-6" />
                 ) : (
                   <MessageSquare className="w-6 h-6 text-muted-foreground" />
                 )}
                 <span>
-                  {isImageUrl
+                  {isImageUrl && !imageError
                     ? 'Imagem customizada'
+                    : imageError
+                    ? 'Imagem inválida - escolha outra'
                     : selectedIcon?.label || 'Selecionar ícone'}
                 </span>
               </div>

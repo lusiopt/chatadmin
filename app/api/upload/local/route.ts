@@ -103,23 +103,25 @@ export async function POST(request: NextRequest) {
     // Salvar arquivo
     await writeFile(uploadPath, buffer);
 
-    // URL pública do arquivo
+    // URL pública do arquivo (relativa - sem /chat prefix para uploads)
     const publicUrl = `/uploads/${config.folder}/${fileName}`;
 
     // URL completa via proxy HTTPS
     // Quando acessado via dev.lusio.market/chat, usa HTTPS através do proxy reverso
     const host = request.headers.get("host") || "localhost:3000";
+    const protocol = request.headers.get("x-forwarded-proto") || "http";
 
     let fullUrl: string;
     if (host.includes("localhost")) {
       // Ambiente local: usa HTTP direto
       fullUrl = `http://${host}${publicUrl}`;
     } else if (host.includes("dev.lusio.market")) {
-      // Ambiente dev: já está atrás do proxy HTTPS
-      fullUrl = `https://${host}${publicUrl}`;
+      // Ambiente dev: usa protocolo do proxy (HTTPS)
+      fullUrl = `${protocol}://${host}${publicUrl}`;
     } else {
-      // Acesso direto à VM Azure: usa proxy HTTPS da VPS
-      fullUrl = `https://dev.lusio.market${publicUrl}`;
+      // Acesso direto à VM Azure via IP: também funciona via nginx proxy
+      // Usar URL relativa que funciona tanto via IP quanto via domínio
+      fullUrl = publicUrl;
     }
 
     return NextResponse.json({
