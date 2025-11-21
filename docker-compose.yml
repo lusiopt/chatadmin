@@ -13,6 +13,9 @@ services:
       - .env
     environment:
       - NODE_ENV=production
+    volumes:
+      # Mapear diretório de uploads para persistir arquivos
+      - ./public/uploads:/app/public/uploads
     networks:
       - chatadmin-network
 
