@@ -200,7 +200,7 @@ export async function listMembers(
 }
 
 /**
- * Faz upload de imagem para o Stream CDN
+ * Faz upload de imagem para o Stream CDN usando o SDK
  * Retorna a URL da imagem hospedada
  */
 export async function uploadChannelImage(
@@ -208,21 +208,24 @@ export async function uploadChannelImage(
   fileName: string,
   contentType: string
 ): Promise<string> {
-  const client = getStreamChatClient();
-
-  // Criar um canal temporário apenas para fazer o upload
-  // O Stream Chat requer um canal para fazer upload de imagens
-  const tempChannel = client.channel('messaging', 'temp-upload');
-
   try {
-    // Converter Buffer para Uint8Array e depois para Blob
-    const uint8Array = new Uint8Array(file);
-    const blob = new Blob([uint8Array], { type: contentType });
+    const client = getStreamChatClient();
 
-    // Fazer upload da imagem
-    const response = await tempChannel.sendImage(blob as any, fileName, contentType);
+    // Converter Buffer para Readable Stream (Node.js)
+    const { Readable } = await import('stream');
+    const readable = Readable.from(file);
 
-    // Retornar a URL da imagem no CDN do Stream
+    // Criar canal temporário para upload
+    const tempChannel = client.channel('messaging', 'file-upload');
+
+    // Usar método nativo do SDK
+    const response = await tempChannel.sendImage(
+      readable,
+      fileName,
+      contentType,
+      { id: 'admin' } // User ID para autenticação server-side
+    );
+
     return response.file;
   } catch (error) {
     console.error('Erro ao fazer upload de imagem:', error);
