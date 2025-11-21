@@ -112,9 +112,106 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
   // Detecta se o value é uma URL de imagem
   const isImageUrl = value && (value.startsWith('http') || value.startsWith('data:'))
 
-  const handleIconSelect = (iconName: string) => {
-    onChange(iconName)
-    setIsOpen(false)
+  const handleIconSelect = async (iconName: string) => {
+    try {
+      setUploading(true)
+
+      // Encontrar o ícone selecionado
+      const selectedIconData = AVAILABLE_ICONS.find(icon => icon.name === iconName)
+      if (!selectedIconData) return
+
+      const IconComponent = selectedIconData.icon
+
+      // Criar elemento temporário DOM para renderizar o ícone
+      const tempContainer = document.createElement('div')
+      tempContainer.style.position = 'absolute'
+      tempContainer.style.left = '-9999px'
+      tempContainer.style.width = '256px'
+      tempContainer.style.height = '256px'
+      document.body.appendChild(tempContainer)
+
+      // Renderizar o ícone no DOM temporário usando ReactDOM
+      const { createRoot } = await import('react-dom/client')
+      const root = createRoot(tempContainer)
+
+      await new Promise<void>((resolve) => {
+        root.render(
+          <div style={{ width: 256, height: 256, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconComponent size={180} strokeWidth={1.5} color="#000000" />
+          </div>
+        )
+        // Aguardar renderização
+        setTimeout(() => resolve(), 150)
+      })
+
+      // Obter o SVG renderizado
+      const svgElement = tempContainer.querySelector('svg')
+      if (!svgElement) {
+        throw new Error('Não foi possível renderizar o ícone')
+      }
+
+      // Converter SVG para PNG usando canvas
+      const canvas = document.createElement('canvas')
+      canvas.width = 256
+      canvas.height = 256
+      const ctx = canvas.getContext('2d')
+
+      if (!ctx) {
+        throw new Error('Não foi possível criar contexto do canvas')
+      }
+
+      // Serializar o SVG
+      const svgData = new XMLSerializer().serializeToString(svgElement)
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+      const url = URL.createObjectURL(svgBlob)
+
+      // Carregar SVG como imagem
+      const img = new Image()
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = reject
+        img.src = url
+      })
+
+      // Desenhar no canvas centralizado
+      const padding = 38
+      ctx.drawImage(img, padding, padding, 180, 180)
+      URL.revokeObjectURL(url)
+
+      // Limpar
+      root.unmount()
+      document.body.removeChild(tempContainer)
+
+      // Converter canvas para blob PNG
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), 'image/png')
+      })
+
+      // Fazer upload para Stream CDN
+      const formData = new FormData()
+      formData.append('file', blob, `icon-${iconName}.png`)
+
+      const response = await fetch('/api/upload/channel-image', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erro ao fazer upload')
+      }
+
+      const data = await response.json()
+
+      // Salvar a URL retornada pelo Stream CDN
+      onChange(data.url)
+      setIsOpen(false)
+    } catch (error) {
+      console.error('Erro ao processar ícone:', error)
+      alert(error instanceof Error ? error.message : 'Erro ao processar ícone')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
