@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -91,13 +92,7 @@ export default function ChannelDetailsPage() {
   const loadChannelDetails = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/channels/${type}/${id}`)
-
-      if (!response.ok) {
-        throw new Error("Erro ao carregar canal")
-      }
-
-      const data = await response.json()
+      const { data } = await api.get(`/api/channels/${type}/${id}`)
       setChannel(data.channel)
       setFormData({
         name: data.channel.name || "",
@@ -113,12 +108,8 @@ export default function ChannelDetailsPage() {
 
   const loadMembers = async () => {
     try {
-      const response = await fetch(`/api/channels/${type}/${id}/members`)
-
-      if (response.ok) {
-        const data = await response.json()
-        setMembers(data.members || [])
-      }
+      const { data } = await api.get(`/api/channels/${type}/${id}/members`)
+      setMembers(data.members || [])
     } catch (err) {
       console.error("Erro ao carregar membros:", err)
     }
@@ -127,15 +118,11 @@ export default function ChannelDetailsPage() {
   const loadAvailableUsers = async () => {
     try {
       setLoadingUsers(true)
-      const response = await fetch('/api/users')
-
-      if (response.ok) {
-        const data = await response.json()
-        // Filtrar usuários que já são membros
-        const memberIds = new Set(members.map(m => m.user_id))
-        const usersNotInChannel = data.users.filter((u: User) => !memberIds.has(u.id))
-        setAvailableUsers(usersNotInChannel)
-      }
+      const { data } = await api.get('/api/users')
+      // Filtrar usuários que já são membros
+      const memberIds = new Set(members.map(m => m.user_id))
+      const usersNotInChannel = data.users.filter((u: User) => !memberIds.has(u.id))
+      setAvailableUsers(usersNotInChannel)
     } catch (err) {
       console.error("Erro ao carregar usuários:", err)
     } finally {
@@ -186,18 +173,7 @@ export default function ChannelDetailsPage() {
 
     try {
       setSaving(true)
-      const response = await fetch(`/api/channels/${type}/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      })
-
-      if (!response.ok) {
-        throw new Error("Erro ao atualizar canal")
-      }
-
+      await api.patch(`/api/channels/${type}/${id}`, formData)
       alert("Canal atualizado com sucesso!")
       await loadChannelDetails()
     } catch (err) {
@@ -214,18 +190,9 @@ export default function ChannelDetailsPage() {
     }
 
     try {
-      const response = await fetch(`/api/channels/${type}/${id}/members`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ user_ids: Array.from(selectedUserIds) }),
+      await api.post(`/api/channels/${type}/${id}/members`, {
+        user_ids: Array.from(selectedUserIds)
       })
-
-      if (!response.ok) {
-        throw new Error("Erro ao adicionar membros")
-      }
-
       await loadMembers()
       setSelectedUserIds(new Set())
       setIsAddMemberDialogOpen(false)
@@ -241,18 +208,9 @@ export default function ChannelDetailsPage() {
     }
 
     try {
-      const response = await fetch(`/api/channels/${type}/${id}/members`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ user_ids: [userId] }),
+      await api.delete(`/api/channels/${type}/${id}/members`, {
+        data: { user_ids: [userId] }
       })
-
-      if (!response.ok) {
-        throw new Error("Erro ao remover membro")
-      }
-
       await loadMembers()
     } catch (err) {
       alert(err instanceof Error ? err.message : "Erro ao remover membro")

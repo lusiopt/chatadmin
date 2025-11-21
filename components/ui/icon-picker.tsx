@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import api from "@/lib/api"
 import {
   MessageSquare, Hash, Users, Megaphone, Bell, BookOpen,
   Briefcase, Calendar, Camera, Coffee, Heart, Home,
@@ -193,17 +194,9 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
       formData.append('file', blob, `icon-${iconName}.png`)
       formData.append('type', 'channel-icon')
 
-      const response = await fetch('/api/upload/local', {
-        method: 'POST',
-        body: formData,
+      const { data } = await api.post('/api/upload/local', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Erro ao fazer upload')
-      }
-
-      const data = await response.json()
 
       // Salvar a URL retornada
       onChange(data.url)
@@ -242,17 +235,9 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
       formData.append('file', file)
       formData.append('type', 'channel-icon')
 
-      const response = await fetch('/api/upload/local', {
-        method: 'POST',
-        body: formData,
+      const { data } = await api.post('/api/upload/local', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Erro ao fazer upload')
-      }
-
-      const data = await response.json()
 
       // Salvar a URL retornada
       onChange(data.url)

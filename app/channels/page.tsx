@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -59,13 +60,7 @@ export default function ChannelsPage() {
   const loadChannels = async () => {
     try {
       setLoading(true)
-      const response = await fetch("/api/channels")
-
-      if (!response.ok) {
-        throw new Error("Erro ao carregar canais")
-      }
-
-      const data = await response.json()
+      const { data } = await api.get("/api/channels")
       setChannels(data.channels || [])
       setError(null)
     } catch (err) {
@@ -77,17 +72,7 @@ export default function ChannelsPage() {
 
   const handleCreateChannel = async () => {
     try {
-      const response = await fetch("/api/channels", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newChannel),
-      })
-
-      if (!response.ok) {
-        throw new Error("Erro ao criar canal")
-      }
+      await api.post("/api/channels", newChannel)
 
       // Recarregar lista de canais
       await loadChannels()
@@ -106,13 +91,7 @@ export default function ChannelsPage() {
     }
 
     try {
-      const response = await fetch(`/api/channels/${type}/${id}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        throw new Error("Erro ao deletar canal")
-      }
+      await api.delete(`/api/channels/${type}/${id}`)
 
       // Recarregar lista de canais
       await loadChannels()

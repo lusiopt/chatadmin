@@ -1,23 +1,16 @@
-/**
- * Helper para fazer requisições API com suporte a basePath
- *
- * O Next.js basePath funciona automaticamente apenas para navegação (Links, Router),
- * mas requisições fetch() precisam incluir o basePath manualmente quando rodando no cliente.
- */
-
-const basePath = '/chat';
+import axios from 'axios';
 
 /**
- * Faz uma requisição fetch com o basePath correto
+ * Cliente Axios configurado com baseURL para lidar com basePath do Next.js
  *
- * @param url - URL relativa da API (ex: '/api/channels')
- * @param options - Opções do fetch (method, headers, body, etc)
- * @returns Response do fetch
+ * No cliente (navegador): adiciona prefixo /chat para todas as requisições
+ * No servidor (SSR): não adiciona prefixo (Next.js lida automaticamente)
  */
-export async function apiFetch(url: string, options?: RequestInit): Promise<Response> {
-  // No servidor, Next.js lida com o basePath automaticamente
-  // No cliente, precisamos adicionar manualmente
-  const fullUrl = typeof window !== 'undefined' ? `${basePath}${url}` : url;
+const api = axios.create({
+  baseURL: typeof window !== 'undefined' ? '/chat' : '',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-  return fetch(fullUrl, options);
-}
+export default api;
