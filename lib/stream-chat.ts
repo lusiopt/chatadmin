@@ -215,9 +215,12 @@ export async function uploadChannelImage(
     // Converter Buffer para Readable Stream (Node.js)
     const readable = Readable.from(file);
 
-    // Usar client.sendFile() diretamente sem criar canal temporário
+    // Construir URL completa usando baseURL do client
+    const uploadUrl = `${client.baseURL}/channels/messaging/temp/image`;
+
+    // Usar client.sendFile() com URL completa
     const response = await client.sendFile(
-      '/images',  // Endpoint genérico para upload de imagens
+      uploadUrl,
       readable,
       fileName,
       contentType
