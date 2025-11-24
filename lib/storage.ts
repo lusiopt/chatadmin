@@ -96,9 +96,9 @@ export async function listFiles(
  */
 export async function uploadAvatar(
   file: File,
-  userId: string
+  userId?: string
 ): Promise<{ url: string } | { error: string }> {
-  const fileName = `${userId}.${file.name.split('.').pop()}`;
+  const fileName = userId ? `${userId}.${file.name.split('.').pop()}` : undefined;
   const result = await uploadFile('avatars', file, fileName);
 
   if ('error' in result) {
