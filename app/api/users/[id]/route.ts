@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
+import { syncUserToStream, deleteUserFromStream, createAuditLog } from '@/lib/user-sync';
+
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+/**
+ * GET /api/users/[id]
+ * Busca um usuário específico com suas permissões
+ */
+export async function GET(
+  request: NextRequest,
+  context: RouteContext
+) {
+  try {
+    const { id } = await context.params;
+
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select('*, user_permissions(*)')
+      .eq('id', id)
+      .single();
+
+    if (error || !user) {
+      return NextResponse.json(
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    console.error('Erro ao buscar usuário:', error);
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/users/[id]
+ * Atualiza dados de um usuário e sincroniza com Stream Chat
+ */
+export async function PATCH(
+  request: NextRequest,
+  context: RouteContext
+) {
+  try {
+    const { id } = await context.params;
+    const body = await request.json();
+    const { nome, avatar, role, status, temas } = body;
+
+    // Validações
+    if (nome && nome.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'Nome não pode ser vazio' },
+        { status: 400 }
+      );
+    }
+
+    // 1. Atualizar dados básicos do usuário
+    const updateData: any = {};
+    if (nome !== undefined) updateData.nome = nome;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (role !== undefined) updateData.role = role;
+    if (status !== undefined) updateData.status = status;
+
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (userError || !user) {
+      console.error('Erro ao atualizar usuário:', userError);
+      return NextResponse.json(
+        { error: 'Erro ao atualizar usuário' },
+        { status: 500 }
+      );
+    }
+
+    // 2. Atualizar permissões por tema (se fornecido)
+    if (temas && Array.isArray(temas)) {
+      // Deletar permissões antigas
+      await supabaseAdmin
+        .from('user_permissions')
+        .delete()
+        .eq('user_id', id);
+
+      // Criar novas permissões
+      if (temas.length > 0) {
+        const permissions = temas.map((tema: string) => ({
+          user_id: id,
+          tema,
+          can_view_chat: true,
+          can_send_messages: true,
+          can_view_announcements: true,
+          can_create_announcements: false,
+          can_moderate: false,
+          can_delete_messages: false
+        }));
+
+        await supabaseAdmin
+          .from('user_permissions')
+          .insert(permissions);
+      }
+    }
+
+    // 3. Sincronizar com Stream Chat
+    const syncResult = await syncUserToStream(id);
+
+    if (!syncResult.success) {
+      console.error('Erro ao sincronizar com Stream:', syncResult.error);
+    }
+
+    // 4. Criar audit log
+    await createAuditLog(
+      null,
+      'update_user',
+      'users',
+      { user_id: id, changes: updateData, temas }
+    );
+
+    return NextResponse.json({
+      user,
+      stream_synced: syncResult.success,
+      message: 'Usuário atualizado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('Erro ao atualizar usuário:', error);
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/users/[id]
+ * Deleta um usuário do Supabase e do Stream Chat
+ */
+export async function DELETE(
+  request: NextRequest,
+  context: RouteContext
+) {
+  try {
+    const { id } = await context.params;
+
+    // 1. Buscar stream_user_id antes de deletar
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('stream_user_id, nome, email')
+      .eq('id', id)
+      .single();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // 2. Deletar do Supabase (cascade deletará permissões também)
+    const { error: deleteError } = await supabaseAdmin
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Erro ao deletar usuário:', deleteError);
+      return NextResponse.json(
+        { error: 'Erro ao deletar usuário' },
+        { status: 500 }
+      );
+    }
+
+    // 3. Deletar do Stream Chat
+    if (user.stream_user_id) {
+      const streamResult = await deleteUserFromStream(user.stream_user_id);
+
+      if (!streamResult.success) {
+        console.error('Erro ao deletar do Stream:', streamResult.error);
+        // Continua mesmo se falhar no Stream
+      }
+    }
+
+    // 4. Criar audit log
+    await createAuditLog(
+      null,
+      'delete_user',
+      'users',
+      { user_id: id, nome: user.nome, email: user.email }
+    );
+
+    return NextResponse.json({
+      message: 'Usuário deletado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('Erro ao deletar usuário:', error);
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    );
+  }
+}
