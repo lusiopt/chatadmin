@@ -15,11 +15,16 @@ export async function uploadFile(
     const timestamp = Date.now();
     const filePath = fileName || `${timestamp}.${fileExt}`;
 
+    // Converter File para ArrayBuffer para funcionar no servidor
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     const { data, error } = await supabaseAdmin.storage
       .from(bucket)
-      .upload(filePath, file, {
+      .upload(filePath, buffer, {
         cacheControl: '3600',
-        upsert: false
+        upsert: true,
+        contentType: file.type
       });
 
     if (error) {
