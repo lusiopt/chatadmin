@@ -80,7 +80,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
         avatar: formData.avatar,
         role: formData.role,
         temas
-      });
+      } as any);
 
       onOpenChange(false);
     } catch (error) {
