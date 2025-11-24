@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Upload, X, User } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import api from '@/lib/api';
 
 interface AvatarUploadProps {
   value?: string;
@@ -43,19 +44,11 @@ export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
       formData.append('file', file);
       if (userId) formData.append('userId', userId);
 
-      const response = await fetch('/api/upload/avatar', {
-        method: 'POST',
-        body: formData
+      const { data } = await api.post('/api/upload/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        onChange(data.url);
-      } else {
-        alert(data.error || 'Erro ao fazer upload');
-        setPreview(value || null);
-      }
+      onChange(data.url);
     } catch (error) {
       console.error('Erro no upload:', error);
       alert('Erro ao fazer upload do avatar');

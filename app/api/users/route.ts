@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, nome, avatar, role = 'user', temas = [] } = body;
+    const { email, nome, avatar, role = 'user', permissions = [] } = body;
 
     // Validações básicas
     if (!email || !nome) {
@@ -119,26 +119,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Criar permissões para cada tema
-    if (temas.length > 0) {
-      const permissions = temas.map((tema: string) => ({
+    // 2. Criar permissões granulares para cada tema
+    if (permissions.length > 0) {
+      const permissionsToInsert = permissions.map((p: any) => ({
         user_id: user.id,
-        tema,
-        can_view_chat: true,
-        can_send_messages: true,
-        can_view_announcements: true,
-        can_create_announcements: false,
-        can_moderate: false,
-        can_delete_messages: false
+        tema: p.tema,
+        can_view_chat: p.can_view_chat ?? true,
+        can_send_messages: p.can_send_messages ?? true,
+        can_view_announcements: p.can_view_announcements ?? true,
+        can_create_announcements: p.can_create_announcements ?? false,
+        can_moderate: p.can_moderate ?? false,
+        can_delete_messages: p.can_delete_messages ?? false
       }));
 
       const { error: permError } = await supabaseAdmin
         .from('user_permissions')
-        .insert(permissions);
+        .insert(permissionsToInsert);
 
       if (permError) {
         console.error('Erro ao criar permissões:', permError);
-        // Continua mesmo se falhar (permissões podem ser adicionadas depois)
       }
     }
 
@@ -147,15 +146,14 @@ export async function POST(request: NextRequest) {
 
     if (!syncResult.success) {
       console.error('Erro ao sincronizar com Stream:', syncResult.error);
-      // Não falha a criação, mas avisa
     }
 
     // 4. Criar audit log
     await createAuditLog(
-      null, // TODO: pegar userId do admin quando implementar auth
+      null,
       'create_user',
       'users',
-      { user_id: user.id, email, nome, temas }
+      { user_id: user.id, email, nome, permissions }
     );
 
     return NextResponse.json({

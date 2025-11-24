@@ -51,7 +51,7 @@ export async function PATCH(
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const { nome, avatar, role, status, temas } = body;
+    const { nome, avatar, role, status, permissions } = body;
 
     // Validações
     if (nome && nome.trim().length === 0) {
@@ -83,30 +83,30 @@ export async function PATCH(
       );
     }
 
-    // 2. Atualizar permissões por tema (se fornecido)
-    if (temas && Array.isArray(temas)) {
+    // 2. Atualizar permissões granulares (se fornecido)
+    if (permissions && Array.isArray(permissions)) {
       // Deletar permissões antigas
       await supabaseAdmin
         .from('user_permissions')
         .delete()
         .eq('user_id', id);
 
-      // Criar novas permissões
-      if (temas.length > 0) {
-        const permissions = temas.map((tema: string) => ({
+      // Criar novas permissões com valores granulares
+      if (permissions.length > 0) {
+        const permissionsToInsert = permissions.map((p: any) => ({
           user_id: id,
-          tema,
-          can_view_chat: true,
-          can_send_messages: true,
-          can_view_announcements: true,
-          can_create_announcements: false,
-          can_moderate: false,
-          can_delete_messages: false
+          tema: p.tema,
+          can_view_chat: p.can_view_chat ?? true,
+          can_send_messages: p.can_send_messages ?? true,
+          can_view_announcements: p.can_view_announcements ?? true,
+          can_create_announcements: p.can_create_announcements ?? false,
+          can_moderate: p.can_moderate ?? false,
+          can_delete_messages: p.can_delete_messages ?? false
         }));
 
         await supabaseAdmin
           .from('user_permissions')
-          .insert(permissions);
+          .insert(permissionsToInsert);
       }
     }
 
@@ -122,7 +122,7 @@ export async function PATCH(
       null,
       'update_user',
       'users',
-      { user_id: id, changes: updateData, temas }
+      { user_id: id, changes: updateData, permissions }
     );
 
     return NextResponse.json({

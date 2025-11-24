@@ -23,6 +23,7 @@ export type User = {
   role: 'admin' | 'user';
   status: 'active' | 'inactive';
   user_permissions?: TemaPermissions[];
+  permissions?: TemaPermissions[];
 };
 
 interface UserDialogProps {
@@ -72,20 +73,17 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     setLoading(true);
 
     try {
-      const temas = formData.permissions.map((p) => p.tema);
-
       await onSave({
         nome: formData.nome,
         email: formData.email,
         avatar: formData.avatar,
         role: formData.role,
-        temas
-      } as any);
+        permissions: formData.permissions
+      });
 
       onOpenChange(false);
     } catch (error) {
       console.error('Erro ao salvar usuário:', error);
-      alert('Erro ao salvar usuário');
     } finally {
       setLoading(false);
     }

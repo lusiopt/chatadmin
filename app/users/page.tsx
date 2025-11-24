@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { UserList } from '@/components/users/UserList';
 import { UserDialog, User } from '@/components/users/UserDialog';
+import api from '@/lib/api';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -19,20 +20,13 @@ export default function UsersPage() {
   const fetchUsers = async (pageNum: number = 1) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/users?page=${pageNum}&limit=20`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setUsers(data.users);
-        setPage(data.pagination.page);
-        setTotalPages(data.pagination.pages);
-      } else {
-        console.error('Erro ao buscar usuários:', data.error);
-        alert('Erro ao carregar usuários');
-      }
-    } catch (error) {
+      const { data } = await api.get(`/api/users?page=${pageNum}&limit=20`);
+      setUsers(data.users);
+      setPage(data.pagination.page);
+      setTotalPages(data.pagination.pages);
+    } catch (error: any) {
       console.error('Erro ao buscar usuários:', error);
-      alert('Erro ao carregar usuários');
+      alert(error.response?.data?.error || 'Erro ao carregar usuários');
     } finally {
       setLoading(false);
     }
@@ -45,23 +39,12 @@ export default function UsersPage() {
   // Criar novo usuário
   const handleCreate = async (userData: Partial<User>) => {
     try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('Usuário criado com sucesso!');
-        fetchUsers(page);
-      } else {
-        alert(data.error || 'Erro ao criar usuário');
-        throw new Error(data.error);
-      }
-    } catch (error) {
+      await api.post('/api/users', userData);
+      alert('Usuário criado com sucesso!');
+      fetchUsers(page);
+    } catch (error: any) {
       console.error('Erro ao criar usuário:', error);
+      alert(error.response?.data?.error || 'Erro ao criar usuário');
       throw error;
     }
   };
@@ -71,23 +54,12 @@ export default function UsersPage() {
     if (!editingUser) return;
 
     try {
-      const response = await fetch(`/api/users/${editingUser.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('Usuário atualizado com sucesso!');
-        fetchUsers(page);
-      } else {
-        alert(data.error || 'Erro ao atualizar usuário');
-        throw new Error(data.error);
-      }
-    } catch (error) {
+      await api.patch(`/api/users/${editingUser.id}`, userData);
+      alert('Usuário atualizado com sucesso!');
+      fetchUsers(page);
+    } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error);
+      alert(error.response?.data?.error || 'Erro ao atualizar usuário');
       throw error;
     }
   };
@@ -95,21 +67,12 @@ export default function UsersPage() {
   // Deletar usuário
   const handleDelete = async (userId: string) => {
     try {
-      const response = await fetch(`/api/users/${userId}`, {
-        method: 'DELETE'
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('Usuário deletado com sucesso!');
-        fetchUsers(page);
-      } else {
-        alert(data.error || 'Erro ao deletar usuário');
-      }
-    } catch (error) {
+      await api.delete(`/api/users/${userId}`);
+      alert('Usuário deletado com sucesso!');
+      fetchUsers(page);
+    } catch (error: any) {
       console.error('Erro ao deletar usuário:', error);
-      alert('Erro ao deletar usuário');
+      alert(error.response?.data?.error || 'Erro ao deletar usuário');
     }
   };
 
