@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare, Megaphone } from "lucide-react";
+import { MessageSquare, Megaphone, Users } from "lucide-react";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
           ChatAdmin
         </h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link
             href="/channels"
             className="p-8 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
@@ -33,6 +33,19 @@ export default function Home() {
             </div>
             <p className="text-gray-600">
               Criar e gerenciar avisos do feed de atividades
+            </p>
+          </Link>
+
+          <Link
+            href="/users"
+            className="p-8 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <Users className="w-6 h-6 text-primary" />
+              <h2 className="text-2xl font-semibold">Usuários</h2>
+            </div>
+            <p className="text-gray-600">
+              Gerenciar usuários e permissões por tema
             </p>
           </Link>
         </div>
