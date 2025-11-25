@@ -1,4 +1,5 @@
 import { connect, StreamClient } from 'getstream';
+import { File } from 'buffer';
 
 // Inicializar cliente Stream Feeds (server-side)
 let client: StreamClient | null = null;
@@ -147,5 +148,35 @@ export function isStreamFeedsConfigured(): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+// Resposta do upload de imagem
+export interface ImageUploadResponse {
+  file: string;
+  thumbUrl?: string;
+}
+
+// Upload de imagem para o Stream CDN usando SDK nativo
+export async function uploadImage(buffer: Buffer, filename: string): Promise<ImageUploadResponse> {
+  const client = getStreamFeedsClient();
+
+  try {
+    // Usar método correto do SDK: client.uploadImage()
+    const response = await client.uploadImage({
+      file: new File([buffer], filename),
+      user: { id: 'admin' },
+      upload_sizes: [
+        { width: 1920, height: 1080, resize: 'scale', crop: 'center' }
+      ]
+    });
+
+    return {
+      file: response.file,
+      thumbUrl: (response as any).thumb_url,
+    };
+  } catch (error: any) {
+    console.error('Stream upload error:', error);
+    throw new Error(`Failed to upload image: ${error.message}`);
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Image, Link2, Plus } from 'lucide-react';
+import { X, Link2, Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
 import { IPhonePreview } from './iPhonePreview';
 import { HeroTemplate } from './templates/HeroTemplate';
+import { ImageUploader } from './ImageUploader';
 import { Attachment, AnnouncementTemplate, TEMPLATES, createImageAttachment, createLinkAttachment } from './types';
 
 interface Tema {
@@ -77,10 +78,8 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
     link_text: ''
   });
 
-  // UI states para adicionar attachments
-  const [showImageInput, setShowImageInput] = useState(false);
+  // UI states para adicionar link
   const [showLinkInput, setShowLinkInput] = useState(false);
-  const [newImageUrl, setNewImageUrl] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkTitle, setNewLinkTitle] = useState('');
 
@@ -138,9 +137,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         });
       }
       // Reset UI states
-      setShowImageInput(false);
       setShowLinkInput(false);
-      setNewImageUrl('');
       setNewLinkUrl('');
       setNewLinkTitle('');
     }
@@ -157,16 +154,24 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
     });
   };
 
-  // Adicionar imagem
-  const handleAddImage = () => {
-    if (newImageUrl.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, createImageAttachment(newImageUrl.trim())]
-      }));
-      setNewImageUrl('');
-      setShowImageInput(false);
-    }
+  // Callback quando imagem é carregada via ImageUploader
+  const handleImageUpload = (imageUrl: string) => {
+    // Remove imagens anteriores e adiciona a nova
+    setFormData(prev => ({
+      ...prev,
+      attachments: [
+        ...prev.attachments.filter(a => a.type !== 'image'),
+        createImageAttachment(imageUrl)
+      ]
+    }));
+  };
+
+  // Remove imagem atual
+  const handleImageRemove = () => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter(a => a.type !== 'image')
+    }));
   };
 
   // Adicionar link
@@ -286,79 +291,54 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
               />
             </div>
 
-            {/* Mídia / Attachments */}
+            {/* Imagem */}
             <div className="space-y-2">
-              <Label>Mídia</Label>
+              <Label>Imagem</Label>
+              <ImageUploader
+                onUpload={handleImageUpload}
+                currentImage={formData.attachments.find(a => a.type === 'image')?.imageUrl}
+                onRemove={handleImageRemove}
+              />
+            </div>
 
-              {/* Lista de attachments */}
-              {formData.attachments.length > 0 && (
-                <div className="space-y-2 mb-2">
-                  {formData.attachments.map((attachment, index) => (
-                    <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
-                      {attachment.type === 'image' && (
-                        <>
-                          <Image className="w-4 h-4 text-blue-500" />
-                          <span className="text-sm flex-1 truncate">{attachment.imageUrl}</span>
-                        </>
-                      )}
-                      {attachment.type === 'link' && (
-                        <>
-                          <Link2 className="w-4 h-4 text-green-500" />
-                          <span className="text-sm flex-1 truncate">{attachment.title || attachment.titleLink}</span>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAttachment(index)}
-                        className="p-1 hover:bg-gray-200 rounded"
-                      >
-                        <X className="w-4 h-4 text-gray-500" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Botões para adicionar */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowImageInput(!showImageInput)}
-                >
-                  <Image className="w-4 h-4 mr-1" />
-                  Imagem
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowLinkInput(!showLinkInput)}
-                >
-                  <Link2 className="w-4 h-4 mr-1" />
-                  Link
-                </Button>
+            {/* Link (opcional) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Link (opcional)</Label>
+                {!showLinkInput && formData.attachments.filter(a => a.type === 'link').length === 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowLinkInput(true)}
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar
+                  </Button>
+                )}
               </div>
 
-              {/* Input para nova imagem */}
-              {showImageInput && (
-                <div className="flex gap-2 mt-2">
-                  <Input
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                    className="flex-1"
-                  />
-                  <Button type="button" size="sm" onClick={handleAddImage}>
-                    <Plus className="w-4 h-4" />
-                  </Button>
+              {/* Links existentes */}
+              {formData.attachments.filter(a => a.type === 'link').map((attachment, index) => (
+                <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-md border">
+                  <Link2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{attachment.title || 'Saiba mais'}</p>
+                    <p className="text-xs text-gray-500 truncate">{attachment.titleLink}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAttachment(formData.attachments.indexOf(attachment))}
+                    className="p-1 hover:bg-gray-200 rounded flex-shrink-0"
+                  >
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
                 </div>
-              )}
+              ))}
 
               {/* Input para novo link */}
               {showLinkInput && (
-                <div className="space-y-2 mt-2">
+                <div className="space-y-2 p-3 border rounded-md bg-gray-50">
                   <Input
                     value={newLinkUrl}
                     onChange={(e) => setNewLinkUrl(e.target.value)}
@@ -368,11 +348,31 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
                     <Input
                       value={newLinkTitle}
                       onChange={(e) => setNewLinkTitle(e.target.value)}
-                      placeholder="Texto do link (opcional)"
+                      placeholder="Texto do link (ex: Saiba mais)"
                       className="flex-1"
                     />
-                    <Button type="button" size="sm" onClick={handleAddLink}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        handleAddLink();
+                        setShowLinkInput(false);
+                      }}
+                      disabled={!newLinkUrl.trim()}
+                    >
                       <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowLinkInput(false);
+                        setNewLinkUrl('');
+                        setNewLinkTitle('');
+                      }}
+                    >
+                      <X className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
