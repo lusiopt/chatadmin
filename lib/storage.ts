@@ -22,7 +22,7 @@ export async function uploadFile(
     const { data, error } = await supabaseAdmin.storage
       .from(bucket)
       .upload(filePath, buffer, {
-        cacheControl: '3600',
+        cacheControl: '60', // Cache curto para permitir atualizações rápidas
         upsert: true,
         contentType: file.type
       });
@@ -117,7 +117,9 @@ export async function uploadAvatar(
     return result;
   }
 
-  return { url: result.url };
+  // Adicionar versão na URL para invalidar cache do navegador/CDN
+  const urlWithVersion = `${result.url}?v=${timestamp}`;
+  return { url: urlWithVersion };
 }
 
 /**

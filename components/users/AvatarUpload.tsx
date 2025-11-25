@@ -40,12 +40,7 @@ export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
     setUploading(true);
 
     try {
-      // Preview local
-      const reader = new FileReader();
-      reader.onload = (e) => setPreview(e.target?.result as string);
-      reader.readAsDataURL(file);
-
-      // Upload para Supabase
+      // Upload para Supabase PRIMEIRO
       const formData = new FormData();
       formData.append('file', file);
       if (userId) formData.append('userId', userId);
@@ -54,11 +49,13 @@ export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      // Só atualiza preview APÓS upload bem-sucedido
+      setPreview(data.url);
       onChange(data.url);
     } catch (error) {
       console.error('Erro no upload:', error);
       alert('Erro ao fazer upload do avatar');
-      setPreview(value || null);
+      // Mantém preview anterior em caso de erro
     } finally {
       setUploading(false);
     }
