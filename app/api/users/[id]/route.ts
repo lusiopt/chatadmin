@@ -53,6 +53,8 @@ export async function PATCH(
     const body = await request.json();
     const { nome, avatar, role, status, permissions } = body;
 
+    console.log('[API PATCH] Recebido:', { id, nome, avatar, role, status, hasPermissions: !!permissions });
+
     // Validações
     if (nome && nome.trim().length === 0) {
       return NextResponse.json(
@@ -67,6 +69,8 @@ export async function PATCH(
     if (avatar !== undefined) updateData.avatar = avatar;
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
+
+    console.log('[API PATCH] updateData a ser salvo:', updateData);
 
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
