@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload direto para Stream CDN (SDK cuida de tudo)
-    const result = await uploadImage(buffer, file.name);
+    // Upload direto para Stream CDN (SDK v3)
+    const result = await uploadImage(buffer, file.name, file.type);
 
     return NextResponse.json({
       file: result.file,

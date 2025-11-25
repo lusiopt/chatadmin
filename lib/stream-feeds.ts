@@ -1,20 +1,19 @@
-import { connect, StreamClient } from 'getstream';
+import { StreamClient } from '@stream-io/node-sdk';
 import { File } from 'buffer';
 
-// Inicializar cliente Stream Feeds (server-side)
+// Singleton instance do SDK v3
 let client: StreamClient | null = null;
 
-function getStreamFeedsClient(): StreamClient {
+function getStreamClient(): StreamClient {
   if (!client) {
     const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY;
     const secret = process.env.STREAM_SECRET;
-    const appId = process.env.STREAM_APP_ID;
 
-    if (!apiKey || !secret || !appId) {
-      throw new Error('Missing Stream Feeds credentials (API_KEY, SECRET, or APP_ID)');
+    if (!apiKey || !secret) {
+      throw new Error('Missing Stream Feeds credentials (API_KEY or SECRET)');
     }
 
-    client = connect(apiKey, secret, appId);
+    client = new StreamClient(apiKey, secret);
   }
   return client;
 }
@@ -54,41 +53,27 @@ export async function publishAnnouncement(
   temaSlugs: string[],
   data: AnnouncementActivityData
 ): Promise<string[]> {
-  const client = getStreamFeedsClient();
-  const activityIds: string[] = [];
+  const client = getStreamClient();
 
-  // Publicar em cada feed de tema
-  for (const slug of temaSlugs) {
-    try {
-      const feed = client.feed(slug, 'global');
-      const activity = await feed.addActivity({
-        actor: 'admin',
-        verb: 'announce',
-        object: `announcement:${data.id}`,
-        foreign_id: `announcement:${data.id}`,
-        time: new Date().toISOString(),
-        // Custom fields
-        title: data.title,
-        content: data.content,
-        message: data.content.substring(0, 200), // Preview curto
-        status: data.status,
-        template: data.template || 'hero',
-        attachments: data.attachments || [],
-        // Campos antigos para backwards compat
-        image_url: data.image_url || null,
-        link_url: data.link_url || null,
-        link_text: data.link_text || null,
-        temas: data.temas,
-        importancia: 'Normal',
-      });
-      activityIds.push(activity.id);
-    } catch (error) {
-      console.error(`Erro ao publicar no feed ${slug}:global:`, error);
-      throw error;
-    }
+  // Construir lista de feeds no formato "grupo:id"
+  const feeds = temaSlugs.map(slug => `${slug}:global`);
+
+  try {
+    const response = await client.feeds.addActivity({
+      type: 'announce',
+      feeds: feeds,
+      text: data.content.substring(0, 200), // Preview curto
+      id: `announcement:${data.id}`,
+      user_id: 'admin',
+      // Custom fields via any cast (SDK permite campos extras)
+    } as any);
+
+    // Retornar ID da atividade criada
+    return response.activity?.id ? [response.activity.id] : [];
+  } catch (error) {
+    console.error('Erro ao publicar aviso:', error);
+    throw error;
   }
-
-  return activityIds;
 }
 
 // Listar avisos de um tema específico
@@ -96,33 +81,39 @@ export async function listAnnouncementsFromFeed(
   temaSlug: string,
   limit = 50
 ): Promise<any[]> {
-  const client = getStreamFeedsClient();
+  const client = getStreamClient();
 
   try {
-    const feed = client.feed(temaSlug, 'global');
-    const response = await feed.get({ limit });
-    return response.results || [];
+    const response = await client.feeds.queryActivities({
+      filter: {
+        feeds: { $in: [`${temaSlug}:global`] }
+      },
+      limit: limit
+    });
+
+    return response.activities || [];
   } catch (error) {
     console.error(`Erro ao listar avisos do feed ${temaSlug}:global:`, error);
     throw error;
   }
 }
 
-// Remover aviso de múltiplos temas (feeds)
+// Remover aviso de múltiplos temas (feeds) - usando ID da atividade
 export async function removeAnnouncementFromFeeds(
   temaSlugs: string[],
   announcementId: string
 ): Promise<void> {
-  const client = getStreamFeedsClient();
+  const client = getStreamClient();
 
-  for (const slug of temaSlugs) {
-    try {
-      const feed = client.feed(slug, 'global');
-      await feed.removeActivity({ foreignId: `announcement:${announcementId}` });
-    } catch (error) {
-      console.error(`Erro ao remover do feed ${slug}:global:`, error);
-      // Continua tentando remover dos outros feeds
-    }
+  // No SDK v3, deletamos pela ID da atividade
+  try {
+    await client.feeds.deleteActivity({
+      id: `announcement:${announcementId}`,
+      hard_delete: false
+    });
+  } catch (error) {
+    console.error(`Erro ao remover aviso ${announcementId}:`, error);
+    // Não propaga o erro para permitir continuar outras operações
   }
 }
 
@@ -144,7 +135,7 @@ export async function updateAnnouncementInFeeds(
 // Verificar se o cliente está configurado corretamente
 export function isStreamFeedsConfigured(): boolean {
   try {
-    getStreamFeedsClient();
+    getStreamClient();
     return true;
   } catch {
     return false;
@@ -157,22 +148,26 @@ export interface ImageUploadResponse {
   thumbUrl?: string;
 }
 
-// Upload de imagem para o Stream CDN usando SDK nativo
-export async function uploadImage(buffer: Buffer, filename: string): Promise<ImageUploadResponse> {
-  const client = getStreamFeedsClient();
+// Upload de imagem para o Stream CDN usando SDK v3 nativo
+export async function uploadImage(
+  buffer: Buffer,
+  filename: string,
+  contentType: string
+): Promise<ImageUploadResponse> {
+  const client = getStreamClient();
 
   try {
-    // Usar método correto do SDK: client.uploadImage()
+    // Criar File object a partir do Buffer
+    const file = new File([buffer], filename, { type: contentType });
+
+    // Usar método nativo do SDK v3
     const response = await client.uploadImage({
-      file: new File([buffer], filename),
-      user: { id: 'admin' },
-      upload_sizes: [
-        { width: 1920, height: 1080, resize: 'scale', crop: 'center' }
-      ]
+      file: file,
+      user: { id: 'admin' }
     });
 
     return {
-      file: response.file,
+      file: response.file || '',
       thumbUrl: (response as any).thumb_url,
     };
   } catch (error: any) {
