@@ -53,6 +53,13 @@ export async function syncUserToStream(
 
     const streamUserId = user.stream_user_id || user.id;
 
+    console.log('[SYNC] Sincronizando usuário para Stream:', {
+      streamUserId,
+      name: user.nome,
+      avatar: user.avatar || '(sem avatar)',
+      role: user.role
+    });
+
     await streamClient.upsertUser({
       id: streamUserId,
       name: user.nome,
@@ -65,6 +72,8 @@ export async function syncUserToStream(
         status: user.status
       }
     });
+
+    console.log('[SYNC] Usuário sincronizado com sucesso:', streamUserId);
 
     // 4. Atualizar stream_user_id no Supabase se não existia
     if (!user.stream_user_id) {
