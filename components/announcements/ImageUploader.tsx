@@ -46,11 +46,8 @@ export function ImageUploader({ onUpload, currentImage, onRemove }: ImageUploade
       const formData = new FormData();
       formData.append('file', file);
 
-      const { data } = await api.post('/api/upload/image', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // NÃO definir Content-Type manualmente - axios define automaticamente com boundary correto
+      const { data } = await api.post('/api/upload/image', formData);
 
       setState('success');
       setPreview(data.file);
