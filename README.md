@@ -2,6 +2,28 @@
 
 Interface administrativa para gerenciar canais de chat, usuários e avisos do feed de atividades do StreamChat.
 
+## 🔗 Ecossistema Stream Chat
+
+Este projeto faz parte do ecossistema de chat:
+
+```
+┌──────────────┐         ┌──────────────┐
+│  ChatAdmin   │ gerencia│  StreamChat  │
+│   (Web)      │────────▶│    (iOS)     │
+│  Next.js 15  │         │ Swift/SwiftUI│
+└──────┬───────┘         └──────┬───────┘
+       │                        │
+       ▼                        ▼
+┌─────────────────────────────────────────┐
+│         APIs Compartilhadas              │
+│  • Stream Chat (gabuv8nu8azd)           │
+│  • Supabase (admiywnhpbezcgtnebvw)      │
+└─────────────────────────────────────────┘
+```
+
+- **ChatAdmin** (este projeto) = Painel Web para administradores
+- **[StreamChat](../StreamChat/README.md)** = App iOS para usuários finais
+
 ## 🎯 Stack Técnico
 
 - **Next.js 15** (App Router)
@@ -102,21 +124,22 @@ pm2 save
 - Deletar canais
 - Upload de ícones para canais (Supabase Storage)
 
-### 👥 Gerenciamento de Usuários (Em Desenvolvimento)
-- Listar usuários cadastrados
-- Criar/editar usuários
-- Upload de avatares (Supabase Storage)
-- Sistema de permissões por tema:
+### 👥 Gerenciamento de Usuários
+- ✅ Listar usuários cadastrados
+- ✅ Criar/editar/deletar usuários
+- ✅ Upload de avatares (Supabase Storage)
+- ✅ Sistema de permissões granulares por tema:
   - **Cartões**: Ver chat, enviar mensagens, moderar
   - **Milhas**: Ver chat, enviar mensagens, moderar
   - **Network**: Ver chat, enviar mensagens, moderar
-- Sincronização automática com Stream Chat
+- ✅ Sincronização automática Supabase ↔ Stream Chat
 
-### 📢 Curadoria de Avisos (Planejado)
-- Listar avisos do feed
-- Criar novos avisos
-- Editar/deletar avisos
-- Filtrar por tema
+**Usuários Sincronizados:** admin, euclidesgomes, test-user-euclides
+
+### 📢 Curadoria de Avisos (Em Desenvolvimento)
+- ✅ Interface de listagem
+- 🚧 Backend de criação/edição
+- 🚧 Integração com Stream Activity Feeds
 
 ## 🔧 Estrutura do Projeto
 
@@ -242,31 +265,45 @@ await streamClient.upsertUser({
 - [x] Integração Supabase Cloud
 - [x] Migrations de tabelas e buckets
 - [x] Helpers de storage (upload/delete)
+- [x] CRUD completo de usuários
+- [x] Sistema de permissões granulares por tema
+- [x] Sincronização Supabase ↔ Stream Chat
+- [x] Upload de avatares via interface
 
 ### 🚧 Em Desenvolvimento
-- [ ] CRUD de usuários (interface)
-- [ ] Sistema de permissões por tema
-- [ ] Sincronização Supabase ↔ Stream
+- [ ] CRUD de avisos (backend)
 - [ ] Migração de 58 ícones para Supabase Storage
-- [ ] Upload de avatares via interface
 
 ### 📋 Planejado
 - [ ] Autenticação via Supabase Auth
-- [ ] CRUD de avisos (feed de atividades)
 - [ ] Editor rico de conteúdo
-- [ ] Filtros por tema
 - [ ] Logs de auditoria (interface)
 - [ ] Testes automatizados
 
 ## 📊 Status do Projeto
 
-**Versão:** 2.0.0 (Integração Supabase)
-**Status:** 🚧 Em Desenvolvimento Ativo
+**Versão:** 2.1.0 (CRUD Usuários + Sincronização)
+**Status:** ✅ Em Desenvolvimento Ativo
 **Ambiente:** VM Azure (20.61.121.203)
 **Última Atualização:** 24 Novembro 2025
 **URLs:**
-- Dev: http://20.61.121.203:3000
+- Dev: https://dev.lusio.market/chat
 - Produção (futuro): https://chat.lusio.market
+
+## ⚠️ Notas Técnicas Importantes
+
+### basePath `/chat`
+Este projeto usa `basePath: '/chat'` no next.config.ts. Isso significa:
+- **Não usar `fetch('/api/...')`** - não funciona com basePath
+- **Usar `api.get('/api/...')`** do `lib/api.ts` (axios configurado)
+
+### Upload de Arquivos
+No servidor Node.js, arquivos precisam ser convertidos:
+```typescript
+// File do browser → Buffer para Supabase
+const arrayBuffer = await file.arrayBuffer();
+const buffer = Buffer.from(arrayBuffer);
+```
 
 ## 🔗 Links Importantes
 
