@@ -17,6 +17,14 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
+    // DEBUG: Log do arquivo recebido
+    console.log('[DEBUG] File received:', {
+      exists: !!file,
+      name: file?.name,
+      type: file?.type,
+      size: file?.size,
+    });
+
     if (!file) {
       return NextResponse.json(
         { error: 'Nenhum arquivo enviado' },
@@ -44,6 +52,12 @@ export async function POST(request: NextRequest) {
     // Converter File para Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    // DEBUG: Log do buffer
+    console.log('[DEBUG] Buffer created:', {
+      arrayBufferSize: arrayBuffer.byteLength,
+      bufferSize: buffer.length,
+    });
 
     // Upload direto para Stream CDN (SDK v3)
     const result = await uploadImage(buffer, file.name, file.type);
