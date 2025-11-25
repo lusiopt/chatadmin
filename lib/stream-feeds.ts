@@ -160,10 +160,13 @@ export async function uploadImage(
     // Criar File object a partir do Buffer
     const file = new File([buffer], filename, { type: contentType });
 
-    // Usar método nativo do SDK v3
+    // Usar método nativo do SDK v3 (upload_sizes é OBRIGATÓRIO)
     const response = await client.uploadImage({
       file: file,
-      user: { id: 'admin' }
+      user: { id: 'admin' },
+      upload_sizes: [
+        { width: 1920, height: 1080, resize: 'scale', crop: 'center' }
+      ]
     });
 
     return {
