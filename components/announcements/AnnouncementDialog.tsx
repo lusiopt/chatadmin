@@ -63,7 +63,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
       try {
         const { data } = await api.get('/api/temas?ativo=true');
         setTemas(data.temas);
-        // Definir tema padrao como o primeiro da lista
+        // Definir tema padrão como o primeiro da lista
         if (data.temas.length > 0 && !formData.tema) {
           setFormData(prev => ({ ...prev, tema: data.temas[0].slug }));
         }
@@ -134,32 +134,32 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? 'Atualize as informacoes do aviso'
+              ? 'Atualize as informações do aviso'
               : 'Preencha os dados para criar um novo aviso'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Titulo */}
+          {/* Título */}
           <div className="space-y-2">
-            <Label htmlFor="title">Titulo *</Label>
+            <Label htmlFor="title">Título *</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Titulo do aviso"
+              placeholder="Título do aviso"
               required
             />
           </div>
 
-          {/* Conteudo */}
+          {/* Conteúdo */}
           <div className="space-y-2">
-            <Label htmlFor="content">Conteudo *</Label>
+            <Label htmlFor="content">Conteúdo *</Label>
             <textarea
               id="content"
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Conteudo do aviso..."
+              placeholder="Conteúdo do aviso..."
               required
               rows={5}
               className="w-full px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"

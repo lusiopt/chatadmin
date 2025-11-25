@@ -88,7 +88,7 @@ export function TemaList({ temas, loading, onEdit, onDelete, onReactivate }: Tem
             <TableHead>Slug</TableHead>
             <TableHead>Cor</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Acoes</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

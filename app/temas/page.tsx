@@ -84,7 +84,7 @@ export default function TemasPage() {
     }
   };
 
-  // Abrir dialog para edicao
+  // Abrir dialog para edição
   const handleEdit = (tema: Tema) => {
     setEditingTema(tema);
     setDialogOpen(true);
@@ -116,7 +116,7 @@ export default function TemasPage() {
             <div>
               <h1 className="text-3xl font-bold">Temas</h1>
               <p className="text-gray-600">
-                Gerenciar temas para segmentacao de avisos e permissoes
+                Gerenciar temas para segmentação de avisos e permissões
               </p>
             </div>
           </div>

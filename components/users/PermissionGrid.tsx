@@ -69,7 +69,7 @@ export function PermissionGrid({ permissions, onChange }: PermissionGridProps) {
 
   const handleTemaToggle = (temaSlug: string, enabled: boolean) => {
     if (enabled) {
-      // Adicionar tema com permissoes padrao
+      // Adicionar tema com permissões padrão
       onChange([
         ...permissions,
         {
@@ -108,14 +108,14 @@ export function PermissionGrid({ permissions, onChange }: PermissionGridProps) {
 
   if (temas.length === 0) {
     return (
-      <div className="text-sm text-gray-500">Nenhum tema disponivel</div>
+      <div className="text-sm text-gray-500">Nenhum tema disponível</div>
     );
   }
 
   return (
     <div className="space-y-6">
       <div className="text-sm text-gray-600">
-        Selecione os temas e configure as permissoes especificas para cada um:
+        Selecione os temas e configure as permissões específicas para cada um:
       </div>
 
       {temas.map((tema) => {

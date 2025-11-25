@@ -42,7 +42,7 @@ export function TemaDialog({ open, onClose, onSubmit, tema }: TemaDialogProps) {
 
   const isEditing = !!tema;
 
-  // Preencher formulario ao editar
+  // Preencher formulário ao editar
   useEffect(() => {
     if (tema) {
       setNome(tema.nome);
@@ -79,7 +79,7 @@ export function TemaDialog({ open, onClose, onSubmit, tema }: TemaDialogProps) {
     e.preventDefault();
 
     if (!nome.trim() || !slug.trim()) {
-      alert('Nome e slug sao obrigatorios');
+      alert('Nome e slug são obrigatórios');
       return;
     }
 
@@ -110,8 +110,8 @@ export function TemaDialog({ open, onClose, onSubmit, tema }: TemaDialogProps) {
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? 'Altere as informacoes do tema'
-                : 'Preencha as informacoes do novo tema'}
+                ? 'Altere as informações do tema'
+                : 'Preencha as informações do novo tema'}
             </DialogDescription>
           </DialogHeader>
 
@@ -121,7 +121,7 @@ export function TemaDialog({ open, onClose, onSubmit, tema }: TemaDialogProps) {
               <Label htmlFor="nome">Nome *</Label>
               <Input
                 id="nome"
-                placeholder="Ex: Cartoes de Credito"
+                placeholder="Ex: Cartões de Crédito"
                 value={nome}
                 onChange={(e) => handleNomeChange(e.target.value)}
                 required
@@ -138,19 +138,19 @@ export function TemaDialog({ open, onClose, onSubmit, tema }: TemaDialogProps) {
                 onChange={(e) => setSlug(e.target.value.toLowerCase())}
                 required
                 pattern="[a-z0-9-]+"
-                title="Apenas letras minusculas, numeros e hifens"
+                title="Apenas letras minúsculas, números e hífens"
               />
               <p className="text-xs text-gray-500">
-                Usado em URLs e feeds. Apenas letras minusculas, numeros e hifens.
+                Usado em URLs e feeds. Apenas letras minúsculas, números e hífens.
               </p>
             </div>
 
-            {/* Descricao */}
+            {/* Descrição */}
             <div className="grid gap-2">
-              <Label htmlFor="descricao">Descricao</Label>
+              <Label htmlFor="descricao">Descrição</Label>
               <Input
                 id="descricao"
-                placeholder="Descricao breve do tema"
+                placeholder="Descrição breve do tema"
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
               />
@@ -181,7 +181,7 @@ export function TemaDialog({ open, onClose, onSubmit, tema }: TemaDialogProps) {
 
             {/* Ordem */}
             <div className="grid gap-2">
-              <Label htmlFor="ordem">Ordem de exibicao</Label>
+              <Label htmlFor="ordem">Ordem de exibição</Label>
               <Input
                 id="ordem"
                 type="number"
@@ -190,7 +190,7 @@ export function TemaDialog({ open, onClose, onSubmit, tema }: TemaDialogProps) {
                 onChange={(e) => setOrdem(parseInt(e.target.value) || 0)}
               />
               <p className="text-xs text-gray-500">
-                Menor numero aparece primeiro
+                Menor número aparece primeiro
               </p>
             </div>
           </div>

@@ -42,10 +42,10 @@ export default function Home() {
           >
             <div className="flex items-center gap-3 mb-2">
               <Users className="w-6 h-6 text-primary" />
-              <h2 className="text-xl font-semibold">Usuarios</h2>
+              <h2 className="text-xl font-semibold">Usuários</h2>
             </div>
             <p className="text-gray-600 text-sm">
-              Gerenciar usuarios e permissoes
+              Gerenciar usuários e permissões
             </p>
           </Link>
 
@@ -58,7 +58,7 @@ export default function Home() {
               <h2 className="text-xl font-semibold">Temas</h2>
             </div>
             <p className="text-gray-600 text-sm">
-              Gerenciar temas e segmentacao
+              Gerenciar temas e segmentação
             </p>
           </Link>
         </div>
