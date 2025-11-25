@@ -59,6 +59,7 @@ interface User {
   name: string
   image?: string
   role?: string
+  stream_user_id?: string
 }
 
 export default function ChannelDetailsPage() {
@@ -119,9 +120,11 @@ export default function ChannelDetailsPage() {
     try {
       setLoadingUsers(true)
       const { data } = await api.get('/api/users')
-      // Filtrar usuários que já são membros
+      // Filtrar usuários que já são membros (comparar com stream_user_id)
       const memberIds = new Set(members.map(m => m.user_id))
-      const usersNotInChannel = data.users.filter((u: User) => !memberIds.has(u.id))
+      const usersNotInChannel = data.users.filter((u: any) =>
+        !memberIds.has(u.stream_user_id || u.id)
+      )
       setAvailableUsers(usersNotInChannel)
     } catch (err) {
       console.error("Erro ao carregar usuários:", err)
@@ -190,8 +193,13 @@ export default function ChannelDetailsPage() {
     }
 
     try {
+      // Converter IDs do Supabase para stream_user_id
+      const streamUserIds = availableUsers
+        .filter(u => selectedUserIds.has(u.id))
+        .map(u => u.stream_user_id || u.id)
+
       await api.post(`/api/channels/${type}/${id}/members`, {
-        user_ids: Array.from(selectedUserIds)
+        user_ids: streamUserIds
       })
       await loadMembers()
       setSelectedUserIds(new Set())
