@@ -42,15 +42,8 @@ export default function AnnouncementsPage() {
       const params = new URLSearchParams();
       if (filterTema) params.append('tema_id', filterTema);
 
-      const response = await fetch(`/api/announcements?${params}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setAnnouncements(data.announcements);
-      } else {
-        console.error('Erro ao buscar avisos:', data.error);
-        alert('Erro ao carregar avisos');
-      }
+      const { data } = await api.get(`/api/announcements?${params}`);
+      setAnnouncements(data.announcements);
     } catch (error) {
       console.error('Erro ao buscar avisos:', error);
       alert('Erro ao carregar avisos');
@@ -63,71 +56,40 @@ export default function AnnouncementsPage() {
     fetchAnnouncements();
   }, [filterTema]);
 
-  const handleCreate = async (data: AnnouncementFormData) => {
+  const handleCreate = async (formData: AnnouncementFormData) => {
     try {
-      const response = await fetch('/api/announcements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        alert('Aviso criado com sucesso!');
-        fetchAnnouncements();
-      } else {
-        alert(result.error || 'Erro ao criar aviso');
-        throw new Error(result.error);
-      }
-    } catch (error) {
+      await api.post('/api/announcements', formData);
+      alert('Aviso criado com sucesso!');
+      fetchAnnouncements();
+    } catch (error: any) {
       console.error('Erro ao criar aviso:', error);
+      alert(error.response?.data?.error || 'Erro ao criar aviso');
       throw error;
     }
   };
 
-  const handleUpdate = async (data: AnnouncementFormData) => {
+  const handleUpdate = async (formData: AnnouncementFormData) => {
     if (!editingAnnouncement) return;
 
     try {
-      const response = await fetch(`/api/announcements/${editingAnnouncement.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        alert('Aviso atualizado com sucesso!');
-        fetchAnnouncements();
-      } else {
-        alert(result.error || 'Erro ao atualizar aviso');
-        throw new Error(result.error);
-      }
-    } catch (error) {
+      await api.patch(`/api/announcements/${editingAnnouncement.id}`, formData);
+      alert('Aviso atualizado com sucesso!');
+      fetchAnnouncements();
+    } catch (error: any) {
       console.error('Erro ao atualizar aviso:', error);
+      alert(error.response?.data?.error || 'Erro ao atualizar aviso');
       throw error;
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/announcements/${id}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        alert('Aviso deletado com sucesso!');
-        fetchAnnouncements();
-      } else {
-        alert(result.error || 'Erro ao deletar aviso');
-      }
-    } catch (error) {
+      await api.delete(`/api/announcements/${id}`);
+      alert('Aviso deletado com sucesso!');
+      fetchAnnouncements();
+    } catch (error: any) {
       console.error('Erro ao deletar aviso:', error);
-      alert('Erro ao deletar aviso');
+      alert(error.response?.data?.error || 'Erro ao deletar aviso');
     }
   };
 
