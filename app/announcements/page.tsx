@@ -6,6 +6,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AnnouncementList } from '@/components/announcements/AnnouncementList';
 import { AnnouncementDialog, Announcement } from '@/components/announcements/AnnouncementDialog';
+import api from '@/lib/api';
+
+interface Tema {
+  id: string;
+  slug: string;
+  nome: string;
+  cor: string;
+}
 
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -13,6 +21,20 @@ export default function AnnouncementsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [filterTema, setFilterTema] = useState<string>('');
+  const [temas, setTemas] = useState<Tema[]>([]);
+
+  // Buscar temas da API
+  useEffect(() => {
+    const fetchTemas = async () => {
+      try {
+        const { data } = await api.get('/api/temas?ativo=true');
+        setTemas(data.temas);
+      } catch (error) {
+        console.error('Erro ao buscar temas:', error);
+      }
+    };
+    fetchTemas();
+  }, []);
 
   const fetchAnnouncements = async () => {
     setLoading(true);
@@ -153,9 +175,9 @@ export default function AnnouncementsPage() {
                 className="px-3 py-2 border rounded-md text-sm"
               >
                 <option value="">Todos os temas</option>
-                <option value="Cartões">Cartões</option>
-                <option value="Milhas">Milhas</option>
-                <option value="Network">Network</option>
+                {temas.map((tema) => (
+                  <option key={tema.id} value={tema.slug}>{tema.nome}</option>
+                ))}
               </select>
               <Button
                 variant="outline"

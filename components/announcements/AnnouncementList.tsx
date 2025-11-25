@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Megaphone, Edit, Trash2, Calendar, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Announcement } from './AnnouncementDialog';
+import api from '@/lib/api';
+
+interface Tema {
+  id: string;
+  slug: string;
+  nome: string;
+  cor: string;
+}
 
 interface AnnouncementListProps {
   announcements: Announcement[];
@@ -20,14 +28,43 @@ interface AnnouncementListProps {
   onDelete: (id: string) => void;
 }
 
-const TEMA_COLORS: Record<string, string> = {
-  'Cartões': 'bg-blue-100 text-blue-700',
-  'Milhas': 'bg-green-100 text-green-700',
-  'Network': 'bg-purple-100 text-purple-700',
+// Mapeamento de cores para classes Tailwind (badge style)
+const COR_CLASSES: Record<string, string> = {
+  blue: 'bg-blue-100 text-blue-700',
+  green: 'bg-green-100 text-green-700',
+  purple: 'bg-purple-100 text-purple-700',
+  red: 'bg-red-100 text-red-700',
+  yellow: 'bg-yellow-100 text-yellow-700',
+  orange: 'bg-orange-100 text-orange-700',
+  pink: 'bg-pink-100 text-pink-700',
+  gray: 'bg-gray-100 text-gray-700',
 };
 
 export function AnnouncementList({ announcements, loading, onEdit, onDelete }: AnnouncementListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [temas, setTemas] = useState<Tema[]>([]);
+
+  // Buscar temas da API
+  useEffect(() => {
+    const fetchTemas = async () => {
+      try {
+        const { data } = await api.get('/api/temas');
+        setTemas(data.temas);
+      } catch (error) {
+        console.error('Erro ao buscar temas:', error);
+      }
+    };
+    fetchTemas();
+  }, []);
+
+  // Helper para obter info do tema pelo slug
+  const getTemaInfo = (slug: string) => {
+    const tema = temas.find(t => t.slug === slug);
+    return {
+      nome: tema?.nome || slug,
+      cor: tema?.cor || 'gray'
+    };
+  };
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Tem certeza que deseja deletar o aviso "${title}"?`)) {
@@ -96,10 +133,15 @@ export function AnnouncementList({ announcements, loading, onEdit, onDelete }: A
 
               {/* Tema */}
               <TableCell>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${TEMA_COLORS[announcement.tema] || 'bg-gray-100 text-gray-700'}`}>
-                  <Tag className="w-3 h-3 mr-1" />
-                  {announcement.tema}
-                </span>
+                {(() => {
+                  const temaInfo = getTemaInfo(announcement.tema);
+                  return (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${COR_CLASSES[temaInfo.cor] || COR_CLASSES.gray}`}>
+                      <Tag className="w-3 h-3 mr-1" />
+                      {temaInfo.nome}
+                    </span>
+                  );
+                })()}
               </TableCell>
 
               {/* Status */}

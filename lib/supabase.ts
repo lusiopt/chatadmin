@@ -49,7 +49,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          tema: 'cartoes' | 'milhas' | 'network';
+          tema: string; // Dinamico - carregado da tabela temas
           can_view_chat: boolean;
           can_send_messages: boolean;
           can_view_announcements: boolean;
@@ -75,6 +75,22 @@ export type Database = {
         };
         Insert: Omit<Database['public']['Tables']['audit_logs']['Row'], 'id' | 'created_at'>;
         Update: never;
+      };
+      temas: {
+        Row: {
+          id: string;
+          slug: string;
+          nome: string;
+          descricao: string | null;
+          cor: string;
+          icone: string | null;
+          ativo: boolean;
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['temas']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['temas']['Insert']>;
       };
     };
   };

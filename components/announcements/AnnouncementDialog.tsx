@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import api from '@/lib/api';
 
 export type Announcement = {
   id: string;
@@ -26,6 +27,13 @@ export type Announcement = {
   updated_at: string;
 };
 
+interface Tema {
+  id: string;
+  slug: string;
+  nome: string;
+  cor: string;
+}
+
 interface AnnouncementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,21 +41,40 @@ interface AnnouncementDialogProps {
   onSave: (data: Partial<Announcement>) => Promise<void>;
 }
 
-const TEMAS = ['Cartões', 'Milhas', 'Network'] as const;
-
 export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }: AnnouncementDialogProps) {
   const isEdit = !!announcement;
   const [loading, setLoading] = useState(false);
+  const [temas, setTemas] = useState<Tema[]>([]);
+  const [loadingTemas, setLoadingTemas] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    tema: 'Cartões',
+    tema: '',
     status: 'draft' as 'draft' | 'published',
     image_url: '',
     link_url: '',
     link_text: ''
   });
+
+  // Buscar temas da API
+  useEffect(() => {
+    const fetchTemas = async () => {
+      try {
+        const { data } = await api.get('/api/temas?ativo=true');
+        setTemas(data.temas);
+        // Definir tema padrao como o primeiro da lista
+        if (data.temas.length > 0 && !formData.tema) {
+          setFormData(prev => ({ ...prev, tema: data.temas[0].slug }));
+        }
+      } catch (error) {
+        console.error('Erro ao buscar temas:', error);
+      } finally {
+        setLoadingTemas(false);
+      }
+    };
+    fetchTemas();
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -65,7 +92,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         setFormData({
           title: '',
           content: '',
-          tema: 'Cartões',
+          tema: temas.length > 0 ? temas[0].slug : '',
           status: 'draft',
           image_url: '',
           link_url: '',
@@ -73,7 +100,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         });
       }
     }
-  }, [open, announcement]);
+  }, [open, announcement, temas]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,32 +134,32 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? 'Atualize as informações do aviso'
+              ? 'Atualize as informacoes do aviso'
               : 'Preencha os dados para criar um novo aviso'}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Título */}
+          {/* Titulo */}
           <div className="space-y-2">
-            <Label htmlFor="title">Título *</Label>
+            <Label htmlFor="title">Titulo *</Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Título do aviso"
+              placeholder="Titulo do aviso"
               required
             />
           </div>
 
-          {/* Conteúdo */}
+          {/* Conteudo */}
           <div className="space-y-2">
-            <Label htmlFor="content">Conteúdo *</Label>
+            <Label htmlFor="content">Conteudo *</Label>
             <textarea
               id="content"
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Conteúdo do aviso..."
+              placeholder="Conteudo do aviso..."
               required
               rows={5}
               className="w-full px-3 py-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -149,10 +176,15 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
                 onChange={(e) => setFormData({ ...formData, tema: e.target.value })}
                 className="w-full px-3 py-2 border rounded-md"
                 required
+                disabled={loadingTemas}
               >
-                {TEMAS.map((tema) => (
-                  <option key={tema} value={tema}>{tema}</option>
-                ))}
+                {loadingTemas ? (
+                  <option>Carregando...</option>
+                ) : (
+                  temas.map((tema) => (
+                    <option key={tema.id} value={tema.slug}>{tema.nome}</option>
+                  ))
+                )}
               </select>
             </div>
 
@@ -215,7 +247,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || loadingTemas}>
               {loading ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
             </Button>
           </DialogFooter>
