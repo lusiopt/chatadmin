@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
       bufferSize: buffer.length,
     });
 
+    // DEBUG: Salvar arquivo recebido em disco para comparação
+    const fs = require('fs');
+    fs.writeFileSync('/tmp/received-file.png', buffer);
+    console.log('[DEBUG] File saved to /tmp/received-file.png, size:', buffer.length);
+
     // Upload direto para Stream CDN (SDK v3)
     const result = await uploadImage(buffer, file.name, file.type);
 
