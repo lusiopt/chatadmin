@@ -83,9 +83,11 @@ export async function GET(request: NextRequest) {
  *   - content: string (obrigatorio)
  *   - tema_ids: string[] (obrigatorio - array de UUIDs)
  *   - status: 'draft' | 'published'
- *   - image_url: string (opcional)
- *   - link_url: string (opcional)
- *   - link_text: string (opcional)
+ *   - template: 'hero' | 'card' | 'gallery' | 'video' | 'link' | 'minimal' (default: 'hero')
+ *   - attachments: array de attachments Stream-compatible
+ *   - image_url: string (opcional - backwards compat)
+ *   - link_url: string (opcional - backwards compat)
+ *   - link_text: string (opcional - backwards compat)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -95,6 +97,8 @@ export async function POST(request: NextRequest) {
       content,
       tema_ids,
       status = 'draft',
+      template = 'hero',
+      attachments = [],
       image_url,
       link_url,
       link_text
@@ -178,6 +182,9 @@ export async function POST(request: NextRequest) {
           title,
           content,
           status: 'published',
+          template,
+          attachments,
+          // Campos antigos para backwards compat
           image_url,
           link_url,
           link_text,

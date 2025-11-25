@@ -18,12 +18,29 @@ function getStreamFeedsClient(): StreamClient {
   return client;
 }
 
+// Tipos de attachment compatíveis com Stream
+export interface StreamAttachment {
+  type: 'image' | 'video' | 'link';
+  imageUrl?: string;
+  thumbUrl?: string;
+  assetUrl?: string;
+  title?: string;
+  titleLink?: string;
+  text?: string;
+  ogScrapeUrl?: string;
+  originalWidth?: number;
+  originalHeight?: number;
+}
+
 // Tipos
 export interface AnnouncementActivityData {
   id: string;
   title: string;
   content: string;
   status: 'draft' | 'published';
+  template?: 'hero' | 'card' | 'gallery' | 'video' | 'link' | 'minimal';
+  attachments?: StreamAttachment[];
+  // Campos antigos para backwards compat
   image_url?: string;
   link_url?: string;
   link_text?: string;
@@ -54,6 +71,9 @@ export async function publishAnnouncement(
         content: data.content,
         message: data.content.substring(0, 200), // Preview curto
         status: data.status,
+        template: data.template || 'hero',
+        attachments: data.attachments || [],
+        // Campos antigos para backwards compat
         image_url: data.image_url || null,
         link_url: data.link_url || null,
         link_text: data.link_text || null,
