@@ -134,8 +134,6 @@ pm2 save
   - **Network**: Ver chat, enviar mensagens, moderar
 - ✅ Sincronização automática Supabase ↔ Stream Chat
 
-**Usuários Sincronizados:** admin, euclidesgomes, test-user-euclides
-
 ### 📢 Curadoria de Avisos (Em Desenvolvimento)
 - ✅ Interface de listagem
 - 🚧 Backend de criação/edição
