@@ -56,8 +56,9 @@ interface Member {
 
 interface User {
   id: string
-  name: string
-  image?: string
+  nome: string
+  email?: string
+  avatar?: string
   role?: string
   stream_user_id?: string
 }
@@ -167,7 +168,8 @@ export default function ChannelDetailsPage() {
     const query = searchQuery.toLowerCase()
     return availableUsers.filter(user =>
       user.id.toLowerCase().includes(query) ||
-      user.name.toLowerCase().includes(query)
+      user.nome.toLowerCase().includes(query) ||
+      user.email?.toLowerCase().includes(query)
     )
   }
 
@@ -418,12 +420,26 @@ export default function ChannelDetailsPage() {
                                 checked={selectedUserIds.has(user.id)}
                                 onCheckedChange={() => toggleUserSelection(user.id)}
                               />
-                              <div className="flex-1">
-                                <p className="font-medium">{user.name}</p>
-                                <p className="text-sm text-muted-foreground font-mono">{user.id}</p>
+                              {/* Avatar */}
+                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                                {user.avatar ? (
+                                  <img
+                                    src={user.avatar}
+                                    alt={user.nome}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-lg font-medium text-muted-foreground">
+                                    {user.nome.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{user.nome}</p>
+                                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                               </div>
                               {user.role && (
-                                <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium">
+                                <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium flex-shrink-0">
                                   {user.role}
                                 </span>
                               )}
