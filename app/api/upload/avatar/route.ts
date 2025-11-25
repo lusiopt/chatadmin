@@ -41,15 +41,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload para Supabase Storage
+    console.log('[UPLOAD] Iniciando upload:', { fileName: file.name, fileType: file.type, fileSize: file.size, userId });
+
     const result = await uploadAvatar(file, userId || undefined);
 
+    console.log('[UPLOAD] Resultado:', result);
+
     if ('error' in result) {
+      console.error('[UPLOAD] Erro:', result.error);
       return NextResponse.json(
         { error: result.error },
         { status: 500 }
       );
     }
 
+    console.log('[UPLOAD] Sucesso! URL:', result.url);
     return NextResponse.json({
       url: result.url,
       message: 'Avatar enviado com sucesso'
