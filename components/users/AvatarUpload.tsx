@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Upload, X, User } from 'lucide-react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ interface AvatarUploadProps {
 export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(value || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sincronizar preview quando value mudar (ex: ao abrir dialog de edição)
   useEffect(() => {
@@ -53,6 +54,7 @@ export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      console.log('[AvatarUpload] Upload retornou URL:', data.url);
       onChange(data.url);
     } catch (error) {
       console.error('Erro no upload:', error);
@@ -92,8 +94,9 @@ export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
         )}
       </div>
 
-      <label>
+      <div>
         <input
+          ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/webp"
           onChange={handleFileSelect}
@@ -105,12 +108,12 @@ export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
           variant="outline"
           size="sm"
           disabled={uploading}
-          onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
+          onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="w-4 h-4 mr-2" />
           {uploading ? 'Enviando...' : 'Escolher Avatar'}
         </Button>
-      </label>
+      </div>
 
       <p className="text-xs text-gray-500 text-center">
         JPG, PNG ou WebP. Máximo 5MB
