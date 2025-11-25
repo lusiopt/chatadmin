@@ -72,18 +72,14 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     e.preventDefault();
     setLoading(true);
 
-    const dataToSave = {
-      nome: formData.nome,
-      email: formData.email,
-      avatar: formData.avatar,
-      role: formData.role,
-      permissions: formData.permissions
-    };
-
-    console.log('[UserDialog] Salvando usuário com dados:', dataToSave);
-
     try {
-      await onSave(dataToSave);
+      await onSave({
+        nome: formData.nome,
+        email: formData.email,
+        avatar: formData.avatar,
+        role: formData.role,
+        permissions: formData.permissions
+      });
 
       onOpenChange(false);
     } catch (error) {

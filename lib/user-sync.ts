@@ -7,18 +7,37 @@ type UserPermission = Database['public']['Tables']['user_permissions']['Row'];
 /**
  * Sincroniza usuário do Supabase com Stream Chat
  * Cria ou atualiza o usuário no Stream
+ *
+ * @param userId - ID do usuário no Supabase
+ * @param userData - Dados do usuário (opcional). Se passado, evita SELECT e usa esses dados.
+ *                   Útil quando chamado logo após um UPDATE para evitar race condition.
  */
-export async function syncUserToStream(userId: string): Promise<{ success: boolean; error?: string }> {
+export async function syncUserToStream(
+  userId: string,
+  userData?: Partial<User>
+): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Buscar usuário do Supabase
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    let user: User | null = null;
 
-    if (userError || !user) {
-      return { success: false, error: 'Usuário não encontrado no Supabase' };
+    // Se userData foi passado, usar esses dados (evita race condition após UPDATE)
+    if (userData && userData.id && userData.nome && userData.email) {
+      user = userData as User;
+    } else {
+      // Caso contrário, buscar do Supabase
+      const { data, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !data) {
+        return { success: false, error: 'Usuário não encontrado no Supabase' };
+      }
+      user = data;
+    }
+
+    if (!user) {
+      return { success: false, error: 'Usuário não encontrado' };
     }
 
     // 2. Buscar permissões do usuário

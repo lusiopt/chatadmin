@@ -54,7 +54,6 @@ export function AvatarUpload({ value, onChange, userId }: AvatarUploadProps) {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      console.log('[AvatarUpload] Upload retornou URL:', data.url);
       onChange(data.url);
     } catch (error) {
       console.error('Erro no upload:', error);
