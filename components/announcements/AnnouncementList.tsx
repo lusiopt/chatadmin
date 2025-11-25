@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Megaphone, Edit, Trash2, Calendar, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,14 +12,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { Announcement } from './AnnouncementDialog';
-import api from '@/lib/api';
-
-interface Tema {
-  id: string;
-  slug: string;
-  nome: string;
-  cor: string;
-}
 
 interface AnnouncementListProps {
   announcements: Announcement[];
@@ -42,29 +34,6 @@ const COR_CLASSES: Record<string, string> = {
 
 export function AnnouncementList({ announcements, loading, onEdit, onDelete }: AnnouncementListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [temas, setTemas] = useState<Tema[]>([]);
-
-  // Buscar temas da API
-  useEffect(() => {
-    const fetchTemas = async () => {
-      try {
-        const { data } = await api.get('/api/temas');
-        setTemas(data.temas);
-      } catch (error) {
-        console.error('Erro ao buscar temas:', error);
-      }
-    };
-    fetchTemas();
-  }, []);
-
-  // Helper para obter info do tema pelo slug
-  const getTemaInfo = (slug: string) => {
-    const tema = temas.find(t => t.slug === slug);
-    return {
-      nome: tema?.nome || slug,
-      cor: tema?.cor || 'gray'
-    };
-  };
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Tem certeza que deseja deletar o aviso "${title}"?`)) {
@@ -112,7 +81,7 @@ export function AnnouncementList({ announcements, loading, onEdit, onDelete }: A
         <TableHeader>
           <TableRow>
             <TableHead>Título</TableHead>
-            <TableHead>Tema</TableHead>
+            <TableHead>Temas</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Criado em</TableHead>
             <TableHead className="w-[100px] text-right">Ações</TableHead>
@@ -131,17 +100,23 @@ export function AnnouncementList({ announcements, loading, onEdit, onDelete }: A
                 </div>
               </TableCell>
 
-              {/* Tema */}
+              {/* Temas */}
               <TableCell>
-                {(() => {
-                  const temaInfo = getTemaInfo(announcement.tema);
-                  return (
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${COR_CLASSES[temaInfo.cor] || COR_CLASSES.gray}`}>
-                      <Tag className="w-3 h-3 mr-1" />
-                      {temaInfo.nome}
-                    </span>
-                  );
-                })()}
+                <div className="flex flex-wrap gap-1">
+                  {announcement.temas && announcement.temas.length > 0 ? (
+                    announcement.temas.map((tema) => (
+                      <span
+                        key={tema.id}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${COR_CLASSES[tema.cor] || COR_CLASSES.gray}`}
+                      >
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tema.nome}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-xs">Sem tema</span>
+                  )}
+                </div>
               </TableCell>
 
               {/* Status */}

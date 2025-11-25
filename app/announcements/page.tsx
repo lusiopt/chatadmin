@@ -5,7 +5,7 @@ import { Plus, ArrowLeft, RefreshCw, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AnnouncementList } from '@/components/announcements/AnnouncementList';
-import { AnnouncementDialog, Announcement } from '@/components/announcements/AnnouncementDialog';
+import { AnnouncementDialog, Announcement, AnnouncementFormData } from '@/components/announcements/AnnouncementDialog';
 import api from '@/lib/api';
 
 interface Tema {
@@ -40,7 +40,7 @@ export default function AnnouncementsPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (filterTema) params.append('tema', filterTema);
+      if (filterTema) params.append('tema_id', filterTema);
 
       const response = await fetch(`/api/announcements?${params}`);
       const data = await response.json();
@@ -63,7 +63,7 @@ export default function AnnouncementsPage() {
     fetchAnnouncements();
   }, [filterTema]);
 
-  const handleCreate = async (data: Partial<Announcement>) => {
+  const handleCreate = async (data: AnnouncementFormData) => {
     try {
       const response = await fetch('/api/announcements', {
         method: 'POST',
@@ -86,7 +86,7 @@ export default function AnnouncementsPage() {
     }
   };
 
-  const handleUpdate = async (data: Partial<Announcement>) => {
+  const handleUpdate = async (data: AnnouncementFormData) => {
     if (!editingAnnouncement) return;
 
     try {
@@ -176,7 +176,7 @@ export default function AnnouncementsPage() {
               >
                 <option value="">Todos os temas</option>
                 {temas.map((tema) => (
-                  <option key={tema.id} value={tema.slug}>{tema.nome}</option>
+                  <option key={tema.id} value={tema.id}>{tema.nome}</option>
                 ))}
               </select>
               <Button

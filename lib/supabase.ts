@@ -92,6 +92,33 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['temas']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['temas']['Insert']>;
       };
+      announcements: {
+        Row: {
+          id: string;
+          title: string;
+          content: string;
+          status: 'draft' | 'published';
+          image_url: string | null;
+          link_url: string | null;
+          link_text: string | null;
+          stream_activity_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['announcements']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['announcements']['Insert']>;
+      };
+      announcement_temas: {
+        Row: {
+          id: string;
+          announcement_id: string;
+          tema_id: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['announcement_temas']['Row'], 'id' | 'created_at'>;
+        Update: never;
+      };
     };
   };
 };

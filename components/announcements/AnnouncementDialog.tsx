@@ -14,11 +14,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import api from '@/lib/api';
 
+interface Tema {
+  id: string;
+  slug: string;
+  nome: string;
+  cor: string;
+}
+
 export type Announcement = {
   id: string;
   title: string;
   content: string;
-  tema: string;
+  temas: Tema[];
   status: 'draft' | 'published';
   image_url?: string;
   link_url?: string;
@@ -27,18 +34,21 @@ export type Announcement = {
   updated_at: string;
 };
 
-interface Tema {
-  id: string;
-  slug: string;
-  nome: string;
-  cor: string;
+export interface AnnouncementFormData {
+  title: string;
+  content: string;
+  tema_ids: string[];
+  status: 'draft' | 'published';
+  image_url?: string;
+  link_url?: string;
+  link_text?: string;
 }
 
 interface AnnouncementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   announcement?: Announcement | null;
-  onSave: (data: Partial<Announcement>) => Promise<void>;
+  onSave: (data: AnnouncementFormData) => Promise<void>;
 }
 
 export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }: AnnouncementDialogProps) {
@@ -50,7 +60,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    tema: '',
+    tema_ids: [] as string[],
     status: 'draft' as 'draft' | 'published',
     image_url: '',
     link_url: '',
@@ -63,10 +73,6 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
       try {
         const { data } = await api.get('/api/temas?ativo=true');
         setTemas(data.temas);
-        // Definir tema padrão como o primeiro da lista
-        if (data.temas.length > 0 && !formData.tema) {
-          setFormData(prev => ({ ...prev, tema: data.temas[0].slug }));
-        }
       } catch (error) {
         console.error('Erro ao buscar temas:', error);
       } finally {
@@ -82,7 +88,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         setFormData({
           title: announcement.title,
           content: announcement.content,
-          tema: announcement.tema,
+          tema_ids: announcement.temas?.map(t => t.id) || [],
           status: announcement.status,
           image_url: announcement.image_url || '',
           link_url: announcement.link_url || '',
@@ -92,7 +98,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         setFormData({
           title: '',
           content: '',
-          tema: temas.length > 0 ? temas[0].slug : '',
+          tema_ids: [],
           status: 'draft',
           image_url: '',
           link_url: '',
@@ -100,17 +106,34 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         });
       }
     }
-  }, [open, announcement, temas]);
+  }, [open, announcement]);
+
+  const handleTemaToggle = (temaId: string) => {
+    setFormData(prev => {
+      const isSelected = prev.tema_ids.includes(temaId);
+      if (isSelected) {
+        return { ...prev, tema_ids: prev.tema_ids.filter(id => id !== temaId) };
+      } else {
+        return { ...prev, tema_ids: [...prev.tema_ids, temaId] };
+      }
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.tema_ids.length === 0) {
+      alert('Selecione pelo menos um tema');
+      return;
+    }
+
     setLoading(true);
 
     try {
       await onSave({
         title: formData.title,
         content: formData.content,
-        tema: formData.tema,
+        tema_ids: formData.tema_ids,
         status: formData.status,
         image_url: formData.image_url || undefined,
         link_url: formData.link_url || undefined,
@@ -166,40 +189,52 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
             />
           </div>
 
-          {/* Tema e Status */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="tema">Tema *</Label>
-              <select
-                id="tema"
-                value={formData.tema}
-                onChange={(e) => setFormData({ ...formData, tema: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md"
-                required
-                disabled={loadingTemas}
-              >
-                {loadingTemas ? (
-                  <option>Carregando...</option>
-                ) : (
-                  temas.map((tema) => (
-                    <option key={tema.id} value={tema.slug}>{tema.nome}</option>
-                  ))
-                )}
-              </select>
-            </div>
+          {/* Temas (multi-select) */}
+          <div className="space-y-2">
+            <Label>Temas * <span className="text-sm text-gray-500">(selecione um ou mais)</span></Label>
+            {loadingTemas ? (
+              <p className="text-sm text-gray-500">Carregando temas...</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 p-3 border rounded-md max-h-40 overflow-y-auto">
+                {temas.map((tema) => (
+                  <label
+                    key={tema.id}
+                    className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${
+                      formData.tema_ids.includes(tema.id) ? 'bg-blue-50 border border-blue-200' : ''
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.tema_ids.includes(tema.id)}
+                      onChange={() => handleTemaToggle(tema.id)}
+                      className="rounded border-gray-300"
+                    />
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: tema.cor || '#gray' }}
+                    />
+                    <span className="text-sm">{tema.nome}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {formData.tema_ids.length === 0 && !loadingTemas && (
+              <p className="text-sm text-red-500">Selecione pelo menos um tema</p>
+            )}
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
-                className="w-full px-3 py-2 border rounded-md"
-              >
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-              </select>
-            </div>
+          {/* Status */}
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <select
+              id="status"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })}
+              className="w-full px-3 py-2 border rounded-md"
+            >
+              <option value="draft">Rascunho</option>
+              <option value="published">Publicado</option>
+            </select>
           </div>
 
           {/* Imagem (opcional) */}
