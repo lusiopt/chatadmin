@@ -134,10 +134,12 @@ pm2 save
   - **Network**: Ver chat, enviar mensagens, moderar
 - ✅ Sincronização automática Supabase ↔ Stream Chat
 
-### 📢 Curadoria de Avisos (Em Desenvolvimento)
-- ✅ Interface de listagem
-- 🚧 Backend de criação/edição
-- 🚧 Integração com Stream Activity Feeds
+### 📢 Sistema de Avisos (Announcements)
+- ✅ Interface de listagem e criação
+- ✅ Upload de imagens para Stream CDN
+- ✅ CRUD completo via API
+- ✅ Integração com Stream Activity Feeds v3
+- 🚧 Publicação automática no feed do iOS
 
 ## 🔧 Estrutura do Projeto
 
@@ -155,7 +157,9 @@ chatadmin/
 ├── components/             # Componentes reutilizáveis
 │   └── ui/                 # shadcn/ui components
 ├── lib/                    # Clientes API e utils
+│   ├── api.ts              # Cliente Axios (baseURL: /chat)
 │   ├── stream-chat.ts      # Cliente Stream Chat API
+│   ├── stream-feeds.ts     # Cliente Stream Feeds v3 (avisos)
 │   ├── supabase.ts         # Cliente Supabase
 │   ├── storage.ts          # Helpers Supabase Storage
 │   └── user-sync.ts        # Sync Supabase ↔ Stream
@@ -222,6 +226,58 @@ channel.update({ image: url });
 // 3. iOS/Android carregam PNG do Supabase ✅
 ```
 
+## 🔌 Arquitetura de SDKs
+
+### Stream Chat (para Chat)
+```
+Pacote: stream-chat v8.40.0
+Arquivo: lib/stream-chat.ts
+Uso: Gerenciamento de canais, membros, mensagens
+```
+
+### Stream Feeds (para Avisos)
+```
+Pacote: @stream-io/node-sdk v0.7.21 (SDK v3)
+Arquivo: lib/stream-feeds.ts
+Uso: Publicação de avisos, upload de imagens
+```
+
+**⚠️ IMPORTANTE:** O SDK v3 é diferente do SDK v2 (`getstream`). Não misturar!
+
+### Funções Disponíveis (lib/stream-feeds.ts)
+
+```typescript
+// Upload de imagem para Stream CDN
+uploadImage(buffer: Buffer, filename: string, contentType: string)
+  → { file: string, thumbUrl?: string }
+
+// Publicar aviso em múltiplos feeds
+publishAnnouncement(temaSlugs: string[], data: AnnouncementActivityData)
+  → string[] (IDs das atividades)
+
+// Remover aviso dos feeds
+removeAnnouncementFromFeeds(temaSlugs: string[], announcementId: string)
+
+// Atualizar aviso (remove + republica)
+updateAnnouncementInFeeds(oldSlugs: string[], newSlugs: string[], data)
+```
+
+### Cliente Axios (lib/api.ts)
+
+```typescript
+// Configuração importante:
+const api = axios.create({
+  baseURL: typeof window !== 'undefined' ? '/chat' : '',
+  // SEM Content-Type default! Axios detecta automaticamente:
+  // - Objeto JS → application/json
+  // - FormData → multipart/form-data (com boundary)
+});
+```
+
+**⚠️ NUNCA adicionar `Content-Type` default no axios.** Quebra uploads de FormData.
+
+---
+
 ## 🔐 Sistema de Permissões
 
 ### Multi-Tema
@@ -269,7 +325,7 @@ await streamClient.upsertUser({
 - [x] Upload de avatares via interface
 
 ### 🚧 Em Desenvolvimento
-- [ ] CRUD de avisos (backend)
+- [ ] Publicação de avisos no Activity Feed do iOS
 - [ ] Migração de 58 ícones para Supabase Storage
 
 ### 📋 Planejado
@@ -280,10 +336,10 @@ await streamClient.upsertUser({
 
 ## 📊 Status do Projeto
 
-**Versão:** 2.1.0 (CRUD Usuários + Sincronização)
+**Versão:** 2.2.0 (Upload de Imagens para Avisos)
 **Status:** ✅ Em Desenvolvimento Ativo
 **Ambiente:** VM Azure (20.61.121.203)
-**Última Atualização:** 24 Novembro 2025
+**Última Atualização:** 25 Novembro 2025
 **URLs:**
 - Dev: https://dev.lusio.market/chat
 - Produção (futuro): https://chat.lusio.market
@@ -348,11 +404,20 @@ pm2 restart chatadmin
 
 ## 📋 Changelog
 
-### v1.1.0 (25 Nov 2025) - ✅ Versão Funcional
-- ✅ Upload de avatares funcionando (Supabase Storage)
-- ✅ Sync avatar Supabase → Stream Chat
-- ✅ Exibição de avatares no ChatAdmin web
-- ✅ Avatares sincronizam com iOS via Stream
+### v2.2.0 (25 Nov 2025) - Upload de Imagens para Avisos
+- ✅ Upload de imagens funcionando (Stream CDN)
+- ✅ Migração Stream Feeds SDK v2 → v3 (`@stream-io/node-sdk`)
+- ✅ CRUD completo de avisos via API
+- 🔧 Corrigido: axios Content-Type para FormData (removido default)
+- 🔧 Corrigido: PM2 executando código antigo (cache)
+
+**Arquivos principais modificados:**
+- `lib/stream-feeds.ts` - SDK v3 com uploadImage
+- `lib/api.ts` - Removido Content-Type default
+- `app/api/upload/image/route.ts` - Endpoint de upload
+- `components/announcements/ImageUploader.tsx` - UI de upload
+
+### v2.1.0 (24 Nov 2025) - CRUD Usuários + Sincronização
 - ✅ Sistema de permissões granulares por tema
 - ✅ CRUD completo de usuários
 - ✅ Deleção sincronizada (Supabase + Stream)
