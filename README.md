@@ -346,5 +346,27 @@ pm2 restart chatadmin
 
 ---
 
+## 📋 Changelog
+
+### v1.1.0 (25 Nov 2025) - ✅ Versão Funcional
+- ✅ Upload de avatares funcionando (Supabase Storage)
+- ✅ Sync avatar Supabase → Stream Chat
+- ✅ Exibição de avatares no ChatAdmin web
+- ✅ Avatares sincronizam com iOS via Stream
+- ✅ Sistema de permissões granulares por tema
+- ✅ CRUD completo de usuários
+- ✅ Deleção sincronizada (Supabase + Stream)
+- 🔧 Corrigido: Race condition no sync de avatar
+- 🔧 Corrigido: Cache de imagens (60s + versioning)
+- 🔧 Corrigido: next.config.ts remotePatterns para Supabase
+
+### v1.0.0 (21 Nov 2025) - Release Inicial
+- Interface de gerenciamento de canais
+- Interface de gerenciamento de usuários
+- Integração básica com Stream Chat API
+- Integração com Supabase (Auth, DB, Storage)
+
+---
+
 **Desenvolvido por:** Euclides Gomes + Claude Code
 **Workflow:** Local (Mac) → GitHub → VM Azure (PM2)
