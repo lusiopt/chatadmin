@@ -98,12 +98,19 @@ export async function listFiles(
 
 /**
  * Upload de avatar de usuário
+ * Usa timestamp + userId para garantir nome único e evitar cache
  */
 export async function uploadAvatar(
   file: File,
   userId?: string
 ): Promise<{ url: string } | { error: string }> {
-  const fileName = userId ? `${userId}.${file.name.split('.').pop()}` : undefined;
+  const fileExt = file.name.split('.').pop();
+  const timestamp = Date.now();
+  // Nome único: userId_timestamp.ext ou apenas timestamp.ext
+  const fileName = userId
+    ? `${userId}_${timestamp}.${fileExt}`
+    : `${timestamp}.${fileExt}`;
+
   const result = await uploadFile('avatars', file, fileName);
 
   if ('error' in result) {
