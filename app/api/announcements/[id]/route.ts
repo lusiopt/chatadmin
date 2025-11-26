@@ -12,7 +12,7 @@ interface RouteParams {
 
 /**
  * GET /api/announcements/[id]
- * Busca um aviso especifico com seus temas
+ * Busca um aviso especifico com seus temas e importancias
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -25,6 +25,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         announcement_temas (
           tema_id,
           temas (
+            id,
+            slug,
+            nome,
+            cor
+          )
+        ),
+        announcement_importancias (
+          importancia_id,
+          importancias (
             id,
             slug,
             nome,
@@ -44,10 +53,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Formatar resposta
     const temas = announcement.announcement_temas?.map((at: any) => at.temas).filter(Boolean) || [];
+    const importancias = announcement.announcement_importancias?.map((ai: any) => ai.importancias).filter(Boolean) || [];
     const formatted = {
       ...announcement,
       temas,
-      announcement_temas: undefined
+      importancias,
+      announcement_temas: undefined,
+      announcement_importancias: undefined
     };
 
     return NextResponse.json({ announcement: formatted });
@@ -67,6 +79,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  *   - title: string
  *   - content: string
  *   - tema_ids: string[] (se fornecido, substitui temas existentes)
+ *   - importancia_ids: string[] (se fornecido, substitui importancias existentes)
  *   - status: 'draft' | 'published'
  *   - image_url: string
  *   - link_url: string
@@ -76,7 +89,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, content, tema_ids, status, image_url, link_url, link_text } = body;
+    const { title, content, tema_ids, importancia_ids, status, image_url, link_url, link_text } = body;
 
     // Verificar se aviso existe e buscar dados atuais
     const { data: current, error: fetchError } = await supabaseAdmin
@@ -86,6 +99,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         announcement_temas (
           tema_id,
           temas (
+            id,
+            slug,
+            nome,
+            cor
+          )
+        ),
+        announcement_importancias (
+          importancia_id,
+          importancias (
             id,
             slug,
             nome,
@@ -105,6 +127,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const oldTemas = current.announcement_temas?.map((at: any) => at.temas).filter(Boolean) || [];
     const oldTemaSlugs = oldTemas.map((t: any) => t.slug);
+    const oldImportancias = current.announcement_importancias?.map((ai: any) => ai.importancias).filter(Boolean) || [];
     const wasPublished = current.status === 'published';
 
     // Preparar dados para update
@@ -171,6 +194,45 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Se importancia_ids foi fornecido, atualizar relacionamentos
+    let newImportancias = oldImportancias;
+    if (importancia_ids && Array.isArray(importancia_ids)) {
+      // Buscar novas importancias
+      const { data: importanciasData, error: importanciasError } = await supabaseAdmin
+        .from('importancias')
+        .select('id, slug, nome, cor')
+        .in('id', importancia_ids);
+
+      if (importanciasError || !importanciasData || importanciasData.length === 0) {
+        return NextResponse.json(
+          { error: 'Importancias invalidas' },
+          { status: 400 }
+        );
+      }
+
+      newImportancias = importanciasData;
+
+      // Deletar relacionamentos antigos
+      await supabaseAdmin
+        .from('announcement_importancias')
+        .delete()
+        .eq('announcement_id', id);
+
+      // Criar novos relacionamentos
+      const importanciaRelations = importancia_ids.map((importancia_id: string) => ({
+        announcement_id: id,
+        importancia_id
+      }));
+
+      const { error: impRelError } = await supabaseAdmin
+        .from('announcement_importancias')
+        .insert(importanciaRelations);
+
+      if (impRelError) {
+        console.error('Erro ao atualizar relacionamento aviso-importancias:', impRelError);
+      }
+    }
+
     // Gerenciar publicacao no Stream Feeds
     const newTemaSlugs = newTemas.map((t: any) => t.slug);
     const willBePublished = (status ?? current.status) === 'published';
@@ -192,6 +254,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           link_url: updated.link_url,
           link_text: updated.link_text,
           temas: newTemas.map((t: any) => ({ slug: t.slug, nome: t.nome, cor: t.cor })),
+          importancias: newImportancias.map((i: any) => ({ slug: i.slug, nome: i.nome, cor: i.cor })),
           created_at: updated.created_at
         };
         await publishAnnouncement(newTemaSlugs, activityData);
@@ -204,7 +267,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       announcement: {
         ...updated,
-        temas: newTemas
+        temas: newTemas,
+        importancias: newImportancias
       },
       message: 'Aviso atualizado com sucesso'
     });

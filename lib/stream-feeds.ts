@@ -45,6 +45,7 @@ export interface AnnouncementActivityData {
   link_url?: string;
   link_text?: string;
   temas: Array<{ slug: string; nome: string; cor: string }>;
+  importancias?: Array<{ slug: string; nome: string; cor: string }>;
   created_at: string;
 }
 

@@ -4,7 +4,7 @@ import { publishAnnouncement, AnnouncementActivityData } from '@/lib/stream-feed
 
 /**
  * GET /api/announcements
- * Lista todos os avisos com seus temas
+ * Lista todos os avisos com seus temas e importancias
  * Query params:
  *   - tema_id: string (filtrar por tema)
  *   - status: 'draft' | 'published' (filtrar por status)
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const temaId = searchParams.get('tema_id');
     const status = searchParams.get('status');
 
-    // Base query com join para buscar temas
+    // Base query com join para buscar temas e importancias
     let query = supabaseAdmin
       .from('announcements')
       .select(`
@@ -23,6 +23,15 @@ export async function GET(request: NextRequest) {
         announcement_temas (
           tema_id,
           temas (
+            id,
+            slug,
+            nome,
+            cor
+          )
+        ),
+        announcement_importancias (
+          importancia_id,
+          importancias (
             id,
             slug,
             nome,
@@ -50,10 +59,13 @@ export async function GET(request: NextRequest) {
     // Transformar dados para formato mais amigavel
     const formatted = (announcements || []).map(announcement => {
       const temas = announcement.announcement_temas?.map((at: any) => at.temas).filter(Boolean) || [];
+      const importancias = announcement.announcement_importancias?.map((ai: any) => ai.importancias).filter(Boolean) || [];
       return {
         ...announcement,
         temas,
-        announcement_temas: undefined // remover campo intermediario
+        importancias,
+        announcement_temas: undefined, // remover campo intermediario
+        announcement_importancias: undefined // remover campo intermediario
       };
     });
 
@@ -77,11 +89,12 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/announcements
- * Cria novo aviso com multiplos temas
+ * Cria novo aviso com multiplos temas e importancias
  * Body:
  *   - title: string (obrigatorio)
  *   - content: string (obrigatorio)
  *   - tema_ids: string[] (obrigatorio - array de UUIDs)
+ *   - importancia_ids: string[] (obrigatorio - array de UUIDs)
  *   - status: 'draft' | 'published'
  *   - template: 'hero' | 'card' | 'gallery' | 'video' | 'link' | 'minimal' (default: 'hero')
  *   - attachments: array de attachments Stream-compatible
@@ -96,6 +109,7 @@ export async function POST(request: NextRequest) {
       title,
       content,
       tema_ids,
+      importancia_ids,
       status = 'draft',
       template = 'hero',
       attachments = [],
@@ -119,6 +133,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!importancia_ids || !Array.isArray(importancia_ids) || importancia_ids.length === 0) {
+      return NextResponse.json(
+        { error: 'Pelo menos uma importancia deve ser selecionada' },
+        { status: 400 }
+      );
+    }
+
     // Buscar temas para obter slugs e validar que existem
     const { data: temas, error: temasError } = await supabaseAdmin
       .from('temas')
@@ -128,6 +149,19 @@ export async function POST(request: NextRequest) {
     if (temasError || !temas || temas.length === 0) {
       return NextResponse.json(
         { error: 'Temas invalidos' },
+        { status: 400 }
+      );
+    }
+
+    // Buscar importancias para validar que existem
+    const { data: importancias, error: importanciasError } = await supabaseAdmin
+      .from('importancias')
+      .select('id, slug, nome, cor')
+      .in('id', importancia_ids);
+
+    if (importanciasError || !importancias || importancias.length === 0) {
+      return NextResponse.json(
+        { error: 'Importancias invalidas' },
         { status: 400 }
       );
     }
@@ -174,6 +208,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Criar relacionamentos aviso↔importancias
+    const importanciaRelations = importancia_ids.map((importancia_id: string) => ({
+      announcement_id: announcement.id,
+      importancia_id
+    }));
+
+    const { error: impRelError } = await supabaseAdmin
+      .from('announcement_importancias')
+      .insert(importanciaRelations);
+
+    if (impRelError) {
+      console.error('Erro ao criar relacionamento aviso-importancias:', impRelError);
+      // Rollback: deletar aviso criado (cascade vai deletar announcement_temas)
+      await supabaseAdmin.from('announcements').delete().eq('id', announcement.id);
+      return NextResponse.json(
+        { error: 'Erro ao associar importancias ao aviso' },
+        { status: 500 }
+      );
+    }
+
     // Se status=published, publicar no Stream Feeds
     if (status === 'published') {
       try {
@@ -189,6 +243,7 @@ export async function POST(request: NextRequest) {
           link_url,
           link_text,
           temas: temas.map(t => ({ slug: t.slug, nome: t.nome, cor: t.cor })),
+          importancias: importancias.map(i => ({ slug: i.slug, nome: i.nome, cor: i.cor })),
           created_at: announcement.created_at
         };
 
@@ -204,7 +259,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       announcement: {
         ...announcement,
-        temas
+        temas,
+        importancias
       },
       message: 'Aviso criado com sucesso'
     }, { status: 201 });

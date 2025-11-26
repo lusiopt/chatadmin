@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Megaphone, Edit, Trash2, Calendar, Tag } from 'lucide-react';
+import { Megaphone, Edit, Trash2, Calendar, Tag, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -82,6 +82,7 @@ export function AnnouncementList({ announcements, loading, onEdit, onDelete }: A
           <TableRow>
             <TableHead>Título</TableHead>
             <TableHead>Temas</TableHead>
+            <TableHead>Importancia</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Criado em</TableHead>
             <TableHead className="w-[100px] text-right">Ações</TableHead>
@@ -115,6 +116,25 @@ export function AnnouncementList({ announcements, loading, onEdit, onDelete }: A
                     ))
                   ) : (
                     <span className="text-gray-400 text-xs">Sem tema</span>
+                  )}
+                </div>
+              </TableCell>
+
+              {/* Importancias */}
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  {announcement.importancias && announcement.importancias.length > 0 ? (
+                    announcement.importancias.map((importancia) => (
+                      <span
+                        key={importancia.id}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${COR_CLASSES[importancia.cor] || COR_CLASSES.gray}`}
+                      >
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        {importancia.nome}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-xs">-</span>
                   )}
                 </div>
               </TableCell>

@@ -26,11 +26,19 @@ interface Tema {
   cor: string;
 }
 
+interface Importancia {
+  id: string;
+  slug: string;
+  nome: string;
+  cor: string;
+}
+
 export type Announcement = {
   id: string;
   title: string;
   content: string;
   temas: Tema[];
+  importancias?: Importancia[];
   status: 'draft' | 'published';
   template?: AnnouncementTemplate;
   attachments?: Attachment[];
@@ -45,6 +53,7 @@ export interface AnnouncementFormData {
   title: string;
   content: string;
   tema_ids: string[];
+  importancia_ids: string[];
   status: 'draft' | 'published';
   template: AnnouncementTemplate;
   attachments: Attachment[];
@@ -65,11 +74,14 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
   const [loading, setLoading] = useState(false);
   const [temas, setTemas] = useState<Tema[]>([]);
   const [loadingTemas, setLoadingTemas] = useState(true);
+  const [importancias, setImportancias] = useState<Importancia[]>([]);
+  const [loadingImportancias, setLoadingImportancias] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     tema_ids: [] as string[],
+    importancia_ids: [] as string[],
     status: 'draft' as 'draft' | 'published',
     template: 'hero' as AnnouncementTemplate,
     attachments: [] as Attachment[],
@@ -83,7 +95,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkTitle, setNewLinkTitle] = useState('');
 
-  // Buscar temas da API
+  // Buscar temas e importancias da API
   useEffect(() => {
     const fetchTemas = async () => {
       try {
@@ -95,7 +107,20 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         setLoadingTemas(false);
       }
     };
+
+    const fetchImportancias = async () => {
+      try {
+        const { data } = await api.get('/api/importancias?ativo=true');
+        setImportancias(data.importancias);
+      } catch (error) {
+        console.error('Erro ao buscar importancias:', error);
+      } finally {
+        setLoadingImportancias(false);
+      }
+    };
+
     fetchTemas();
+    fetchImportancias();
   }, []);
 
   useEffect(() => {
@@ -116,6 +141,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
           title: announcement.title,
           content: announcement.content,
           tema_ids: announcement.temas?.map(t => t.id) || [],
+          importancia_ids: announcement.importancias?.map(i => i.id) || [],
           status: announcement.status,
           template: announcement.template || 'hero',
           attachments,
@@ -128,6 +154,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
           title: '',
           content: '',
           tema_ids: [],
+          importancia_ids: [],
           status: 'draft',
           template: 'hero',
           attachments: [],
@@ -150,6 +177,17 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         return { ...prev, tema_ids: prev.tema_ids.filter(id => id !== temaId) };
       } else {
         return { ...prev, tema_ids: [...prev.tema_ids, temaId] };
+      }
+    });
+  };
+
+  const handleImportanciaToggle = (importanciaId: string) => {
+    setFormData(prev => {
+      const isSelected = prev.importancia_ids.includes(importanciaId);
+      if (isSelected) {
+        return { ...prev, importancia_ids: prev.importancia_ids.filter(id => id !== importanciaId) };
+      } else {
+        return { ...prev, importancia_ids: [...prev.importancia_ids, importanciaId] };
       }
     });
   };
@@ -203,6 +241,11 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
       return;
     }
 
+    if (formData.importancia_ids.length === 0) {
+      alert('Selecione pelo menos uma importancia');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -210,6 +253,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
         title: formData.title,
         content: formData.content,
         tema_ids: formData.tema_ids,
+        importancia_ids: formData.importancia_ids,
         status: formData.status,
         template: formData.template,
         attachments: formData.attachments,
@@ -413,6 +457,40 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
               )}
             </div>
 
+            {/* Importancias (multi-select) */}
+            <div className="space-y-2">
+              <Label>Importancia * <span className="text-sm text-gray-500">(selecione uma ou mais)</span></Label>
+              {loadingImportancias ? (
+                <p className="text-sm text-gray-500">Carregando importancias...</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 p-3 border rounded-md max-h-32 overflow-y-auto">
+                  {importancias.map((importancia) => (
+                    <label
+                      key={importancia.id}
+                      className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 ${
+                        formData.importancia_ids.includes(importancia.id) ? 'bg-blue-50 border border-blue-200' : ''
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.importancia_ids.includes(importancia.id)}
+                        onChange={() => handleImportanciaToggle(importancia.id)}
+                        className="rounded border-gray-300"
+                      />
+                      <span
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: importancia.cor || '#gray' }}
+                      />
+                      <span className="text-sm">{importancia.nome}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {formData.importancia_ids.length === 0 && !loadingImportancias && (
+                <p className="text-sm text-red-500">Selecione pelo menos uma importancia</p>
+              )}
+            </div>
+
             {/* Status */}
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
@@ -436,7 +514,7 @@ export function AnnouncementDialog({ open, onOpenChange, announcement, onSave }:
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading || loadingTemas}>
+              <Button type="submit" disabled={loading || loadingTemas || loadingImportancias}>
                 {loading ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
               </Button>
             </DialogFooter>
