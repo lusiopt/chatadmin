@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
           `)
           .eq('stream_channel_id', streamChannelId);
 
-        temas = channelTemas?.map(ct => ct.temas).filter(Boolean) as typeof temas || [];
+        temas = (channelTemas?.map(ct => ct.temas).filter(Boolean) || []) as unknown as typeof temas;
       }
     }
 
