@@ -144,9 +144,17 @@ export async function updateUserChannelMemberships(userId: string): Promise<{ su
 
     // 3. Para cada canal, verificar se usuário deve ser membro
     for (const channel of channels) {
-      const channelTema = channel.data?.tema as string;
+      // Suporta tanto array (novo) quanto string (legado)
+      const channelTemas = channel.data?.temas as string[] || [];
+      const channelTemaLegacy = channel.data?.tema as string | undefined;
+
+      // Combina temas do array com tema legado (se existir)
+      const allChannelTemas = channelTemaLegacy
+        ? [...channelTemas, channelTemaLegacy]
+        : channelTemas;
+
       const isMember = channel.state.members[user.stream_user_id] !== undefined;
-      const shouldBeMember = temasPermitidos.includes(channelTema);
+      const shouldBeMember = temasPermitidos.some(t => allChannelTemas.includes(t));
 
       if (shouldBeMember && !isMember) {
         // Adicionar usuário ao canal
@@ -217,6 +225,7 @@ export async function syncAllUsers(): Promise<{
 
 /**
  * Busca canais permitidos para um usuário baseado em suas permissões
+ * Usa filtro por data.temas (array) - filtragem client-side
  */
 export async function getUserAllowedChannels(userId: string): Promise<{
   channels: any[];
@@ -236,11 +245,13 @@ export async function getUserAllowedChannels(userId: string): Promise<{
       return { channels: [] };
     }
 
-    // 2. Buscar canais do Stream filtrados por tema
+    // 2. Buscar canais do Stream filtrados por temas (array)
+    // Stream SDK suporta $in em arrays: busca canais onde data.temas
+    // contenha pelo menos um dos temas permitidos
     const streamClient = getStreamChatClient();
     const channels = await streamClient.queryChannels({
       type: 'messaging',
-      'data.tema': { $in: temasPermitidos }
+      'data.temas': { $in: temasPermitidos }
     });
 
     return { channels };

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { updateChannel } from '@/lib/stream-chat';
 
 /**
  * GET /api/channels/[type]/[id]/temas
@@ -119,7 +120,7 @@ export async function PUT(
       }
     }
 
-    // Buscar os temas atualizados
+    // Buscar os temas atualizados (com slug para sincronizar com Stream)
     const { data: channelTemas } = await supabaseAdmin
       .from('channel_temas')
       .select(`
@@ -133,6 +134,18 @@ export async function PUT(
       .eq('stream_channel_id', streamChannelId);
 
     const temas = channelTemas?.map(ct => ct.temas).filter(Boolean) || [];
+
+    // Sincronizar temas com Stream Chat (para filtragem client-side)
+    const temaSlugs = temas.map((t: any) => t.slug);
+    try {
+      await updateChannel(type, id, {
+        data: { temas: temaSlugs }
+      });
+      console.log(`[SYNC] Canal ${streamChannelId} sincronizado com temas:`, temaSlugs);
+    } catch (syncError) {
+      console.error('Erro ao sincronizar temas com Stream:', syncError);
+      // Não falha a operação, apenas loga o erro
+    }
 
     return NextResponse.json({
       success: true,

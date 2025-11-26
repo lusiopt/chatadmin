@@ -105,13 +105,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Buscar slugs dos temas para salvar no Stream
+    let temaSlugs: string[] = [];
+    if (tema_ids.length > 0) {
+      const { data: temasData } = await supabaseAdmin
+        .from('temas')
+        .select('slug')
+        .in('id', tema_ids);
+
+      temaSlugs = temasData?.map(t => t.slug) || [];
+    }
+
+    // Criar canal no Stream com temas no data
     const channel = await createChannel({
       id,
       type,
       name,
       image,
       members,
-      data,
+      data: {
+        ...data,
+        temas: temaSlugs, // Array de slugs para filtragem client-side
+      },
     });
 
     // Se tem temas, criar relações no Supabase
