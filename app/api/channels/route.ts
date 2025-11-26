@@ -58,7 +58,8 @@ export async function GET(request: NextRequest) {
           temasMap[ct.stream_channel_id] = [];
         }
         if (ct.temas) {
-          temasMap[ct.stream_channel_id].push(ct.temas as { id: string; slug: string; nome: string; cor: string });
+          const tema = ct.temas as unknown as { id: string; slug: string; nome: string; cor: string };
+          temasMap[ct.stream_channel_id].push(tema);
         }
       });
     }
