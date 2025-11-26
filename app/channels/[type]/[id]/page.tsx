@@ -63,6 +63,13 @@ interface User {
   stream_user_id?: string
 }
 
+interface Tema {
+  id: string
+  slug: string
+  nome: string
+  cor: string
+}
+
 export default function ChannelDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -85,10 +92,19 @@ export default function ChannelDetailsPage() {
     image: "",
   })
 
+  // Estados para temas
+  const [channelTemas, setChannelTemas] = useState<Tema[]>([])
+  const [allTemas, setAllTemas] = useState<Tema[]>([])
+  const [selectedTemaIds, setSelectedTemaIds] = useState<Set<string>>(new Set())
+  const [isTemasDialogOpen, setIsTemasDialogOpen] = useState(false)
+  const [savingTemas, setSavingTemas] = useState(false)
+
   // Carregar detalhes do canal
   useEffect(() => {
     loadChannelDetails()
     loadMembers()
+    loadChannelTemas()
+    loadAllTemas()
   }, [type, id])
 
   const loadChannelDetails = async () => {
@@ -115,6 +131,58 @@ export default function ChannelDetailsPage() {
     } catch (err) {
       console.error("Erro ao carregar membros:", err)
     }
+  }
+
+  const loadChannelTemas = async () => {
+    try {
+      const { data } = await api.get(`/api/channels/${type}/${id}/temas`)
+      setChannelTemas(data.temas || [])
+    } catch (err) {
+      console.error("Erro ao carregar temas do canal:", err)
+    }
+  }
+
+  const loadAllTemas = async () => {
+    try {
+      const { data } = await api.get('/api/temas?ativo=true')
+      setAllTemas(data.temas || [])
+    } catch (err) {
+      console.error("Erro ao carregar temas:", err)
+    }
+  }
+
+  const handleSaveTemas = async () => {
+    try {
+      setSavingTemas(true)
+      await api.put(`/api/channels/${type}/${id}/temas`, {
+        tema_ids: Array.from(selectedTemaIds)
+      })
+      await loadChannelTemas()
+      setIsTemasDialogOpen(false)
+      alert("Temas atualizados com sucesso!")
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao atualizar temas")
+    } finally {
+      setSavingTemas(false)
+    }
+  }
+
+  // Abrir dialog de temas
+  useEffect(() => {
+    if (isTemasDialogOpen) {
+      // Pré-selecionar temas atuais
+      setSelectedTemaIds(new Set(channelTemas.map(t => t.id)))
+    }
+  }, [isTemasDialogOpen, channelTemas])
+
+  const toggleTemaSelection = (temaId: string) => {
+    const newSelection = new Set(selectedTemaIds)
+    if (newSelection.has(temaId)) {
+      newSelection.delete(temaId)
+    } else {
+      newSelection.add(temaId)
+    }
+    setSelectedTemaIds(newSelection)
   }
 
   const loadAvailableUsers = async () => {
@@ -344,6 +412,146 @@ export default function ChannelDetailsPage() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Temas do Canal */}
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Temas do Canal</CardTitle>
+                <CardDescription>
+                  Temas associados a este canal (determina quem pode ver)
+                </CardDescription>
+              </div>
+              <Dialog
+                open={isTemasDialogOpen}
+                onOpenChange={setIsTemasDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">Gerenciar Temas</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Gerenciar Temas</DialogTitle>
+                    <DialogDescription>
+                      Selecione os temas para este canal
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    {allTemas.length === 0 ? (
+                      <div className="text-center py-4 text-muted-foreground">
+                        Nenhum tema disponível
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {allTemas.map((tema) => (
+                          <div
+                            key={tema.id}
+                            className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                            onClick={() => toggleTemaSelection(tema.id)}
+                          >
+                            <Checkbox
+                              id={`tema-${tema.id}`}
+                              checked={selectedTemaIds.has(tema.id)}
+                              onCheckedChange={() => toggleTemaSelection(tema.id)}
+                            />
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{
+                                backgroundColor:
+                                  tema.cor === 'blue' ? '#3b82f6' :
+                                  tema.cor === 'green' ? '#22c55e' :
+                                  tema.cor === 'purple' ? '#a855f7' :
+                                  tema.cor === 'red' ? '#ef4444' :
+                                  tema.cor === 'yellow' ? '#eab308' :
+                                  tema.cor === 'orange' ? '#f97316' :
+                                  tema.cor === 'pink' ? '#ec4899' :
+                                  '#6b7280'
+                              }}
+                            />
+                            <div className="flex-1">
+                              <p className="font-medium">{tema.nome}</p>
+                              <p className="text-xs text-muted-foreground">{tema.slug}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsTemasDialogOpen(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleSaveTemas}
+                      disabled={savingTemas}
+                    >
+                      {savingTemas ? "Salvando..." : "Salvar"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {channelTemas.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">
+                <p>Nenhum tema associado</p>
+                <p className="text-sm">Este canal não será visível para ninguém</p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {channelTemas.map((tema) => (
+                  <span
+                    key={tema.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+                    style={{
+                      backgroundColor:
+                        tema.cor === 'blue' ? '#dbeafe' :
+                        tema.cor === 'green' ? '#dcfce7' :
+                        tema.cor === 'purple' ? '#f3e8ff' :
+                        tema.cor === 'red' ? '#fee2e2' :
+                        tema.cor === 'yellow' ? '#fef9c3' :
+                        tema.cor === 'orange' ? '#ffedd5' :
+                        tema.cor === 'pink' ? '#fce7f3' :
+                        '#f3f4f6',
+                      color:
+                        tema.cor === 'blue' ? '#1d4ed8' :
+                        tema.cor === 'green' ? '#15803d' :
+                        tema.cor === 'purple' ? '#7e22ce' :
+                        tema.cor === 'red' ? '#b91c1c' :
+                        tema.cor === 'yellow' ? '#a16207' :
+                        tema.cor === 'orange' ? '#c2410c' :
+                        tema.cor === 'pink' ? '#be185d' :
+                        '#374151'
+                    }}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor:
+                          tema.cor === 'blue' ? '#3b82f6' :
+                          tema.cor === 'green' ? '#22c55e' :
+                          tema.cor === 'purple' ? '#a855f7' :
+                          tema.cor === 'red' ? '#ef4444' :
+                          tema.cor === 'yellow' ? '#eab308' :
+                          tema.cor === 'orange' ? '#f97316' :
+                          tema.cor === 'pink' ? '#ec4899' :
+                          '#6b7280'
+                      }}
+                    />
+                    {tema.nome}
+                  </span>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

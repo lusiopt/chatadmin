@@ -366,6 +366,60 @@ const buffer = Buffer.from(arrayBuffer);
 - **Supabase Dashboard:** https://supabase.com/dashboard/project/admiywnhpbezcgtnebvw
 - **GitHub Repo:** https://github.com/lusiopt/chatadmin
 
+## 🗄️ Database Migrations
+
+### Executar Migrations (Supabase CLI)
+
+O projeto usa **Supabase CLI** para gerenciar migrations. O CLI está linkado ao projeto `admiywnhpbezcgtnebvw`.
+
+```bash
+# Verificar se está linkado
+supabase projects list
+
+# Executar migrations pendentes
+supabase db push
+
+# Ver migrations aplicadas
+supabase migration list
+
+# Ver diferenças (dry-run)
+supabase db diff
+```
+
+### Criar Nova Migration
+
+```bash
+# 1. Criar arquivo SQL em supabase/migrations/
+# Formato: YYYYMMDDHHMMSS_descricao.sql
+touch supabase/migrations/20251126120000_minha_migration.sql
+
+# 2. Escrever o SQL no arquivo
+
+# 3. Executar
+supabase db push
+```
+
+### Migrations Existentes
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `20251124174905_create_users_tables.sql` | Tabelas de usuários |
+| `20251124175003_enable_rls_and_functions.sql` | RLS e funções |
+| `20251124193923_create_storage_buckets.sql` | Buckets de storage |
+| `20251125180000_create_temas_table.sql` | Tabela de temas |
+| `20251125190000_create_announcements_table.sql` | Tabela de avisos |
+| `20251126_create_importancias.sql` | Tabela de importâncias |
+| `20251126_create_channel_temas.sql` | Relação canal↔temas |
+
+### Notas Importantes
+
+- **Nunca use psql direto** - Use sempre `supabase db push`
+- **Tracking automático** - Supabase guarda quais migrations já rodaram
+- **Idempotente** - Só executa migrations novas
+- **Credenciais** - Ver `docs/infrastructure/CREDENTIALS.md`
+
+---
+
 ## 🛠️ Troubleshooting
 
 ### Aplicação não inicia
