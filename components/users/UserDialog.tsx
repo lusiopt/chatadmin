@@ -42,6 +42,8 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     email: '',
     avatar: '',
     role: 'user' as 'admin' | 'user',
+    password: '',
+    newPassword: '',
     permissions: [] as TemaPermissions[]
   });
 
@@ -54,6 +56,8 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
           email: user.email,
           avatar: user.avatar || '',
           role: user.role,
+          password: '',
+          newPassword: '',
           permissions: user.user_permissions || []
         });
       } else {
@@ -62,6 +66,8 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
           email: '',
           avatar: '',
           role: 'user',
+          password: '',
+          newPassword: '',
           permissions: []
         });
       }
@@ -73,14 +79,25 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     setLoading(true);
 
     try {
-      await onSave({
+      const saveData: any = {
         nome: formData.nome,
         email: formData.email,
         avatar: formData.avatar,
         role: formData.role,
         permissions: formData.permissions
-      });
+      };
 
+      // Senha para criação (obrigatória)
+      if (!isEdit && formData.password) {
+        saveData.password = formData.password;
+      }
+
+      // Nova senha para edição (opcional)
+      if (isEdit && formData.newPassword) {
+        saveData.newPassword = formData.newPassword;
+      }
+
+      await onSave(saveData);
       onOpenChange(false);
     } catch (error) {
       console.error('Erro ao salvar usuário:', error);
@@ -139,10 +156,44 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                 }
                 placeholder="usuario@exemplo.com"
                 required
-                disabled={isEdit} // Email não pode ser alterado
               />
             </div>
           </div>
+
+          {/* Senha - criação (obrigatório) */}
+          {!isEdit && (
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha *</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                placeholder="Mínimo 6 caracteres"
+                required
+                minLength={6}
+              />
+            </div>
+          )}
+
+          {/* Nova senha - edição (opcional) */}
+          {isEdit && (
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova Senha (opcional)</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={formData.newPassword}
+                onChange={(e) =>
+                  setFormData({ ...formData, newPassword: e.target.value })
+                }
+                placeholder="Deixe vazio para manter a atual"
+                minLength={6}
+              />
+            </div>
+          )}
 
           {/* Role */}
           <div className="space-y-2">

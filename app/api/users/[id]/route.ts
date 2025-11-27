@@ -42,7 +42,7 @@ export async function GET(
 
 /**
  * PATCH /api/users/[id]
- * Atualiza dados de um usuário e sincroniza com Stream Chat
+ * Atualiza dados de um usuário (incluindo auth.users) e sincroniza com Stream Chat
  */
 export async function PATCH(
   request: NextRequest,
@@ -51,7 +51,7 @@ export async function PATCH(
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const { nome, avatar, role, status, permissions } = body;
+    const { nome, avatar, role, status, email, newPassword, permissions } = body;
 
     // Validações
     if (nome && nome.trim().length === 0) {
@@ -61,12 +61,40 @@ export async function PATCH(
       );
     }
 
-    // 1. Atualizar dados básicos do usuário
+    // Buscar usuário atual para comparar email
+    const { data: currentUser } = await supabaseAdmin
+      .from('users')
+      .select('email')
+      .eq('id', id)
+      .single();
+
+    // 1. Atualizar auth.users se email ou senha mudaram
+    const authUpdates: any = {};
+    if (email && currentUser && email !== currentUser.email) {
+      authUpdates.email = email;
+    }
+    if (newPassword && newPassword.length >= 6) {
+      authUpdates.password = newPassword;
+    }
+
+    if (Object.keys(authUpdates).length > 0) {
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, authUpdates);
+      if (authError) {
+        console.error('Erro ao atualizar auth.users:', authError);
+        return NextResponse.json(
+          { error: 'Erro ao atualizar credenciais: ' + authError.message },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 2. Atualizar dados básicos do usuário em public.users
     const updateData: any = {};
     if (nome !== undefined) updateData.nome = nome;
     if (avatar !== undefined) updateData.avatar = avatar;
     if (role !== undefined) updateData.role = role;
     if (status !== undefined) updateData.status = status;
+    if (email !== undefined) updateData.email = email;
 
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
@@ -142,7 +170,7 @@ export async function PATCH(
 
 /**
  * DELETE /api/users/[id]
- * Deleta um usuário do Supabase e do Stream Chat
+ * Deleta um usuário do Supabase (auth + public) e do Stream Chat
  */
 export async function DELETE(
   request: NextRequest,
@@ -165,7 +193,7 @@ export async function DELETE(
       );
     }
 
-    // 2. Deletar do Supabase (cascade deletará permissões também)
+    // 2. Deletar de public.users (cascade deletará permissões também)
     const { error: deleteError } = await supabaseAdmin
       .from('users')
       .delete()
@@ -179,7 +207,14 @@ export async function DELETE(
       );
     }
 
-    // 3. Deletar do Stream Chat
+    // 3. Deletar de auth.users (credenciais de login)
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authDeleteError) {
+      console.error('Erro ao deletar de auth.users:', authDeleteError);
+      // Não falha - public.users já foi deletado
+    }
+
+    // 4. Deletar do Stream Chat
     if (user.stream_user_id) {
       const streamResult = await deleteUserFromStream(user.stream_user_id);
 
@@ -189,7 +224,7 @@ export async function DELETE(
       }
     }
 
-    // 4. Criar audit log
+    // 5. Criar audit log
     await createAuditLog(
       null,
       'delete_user',

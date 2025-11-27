@@ -65,17 +65,25 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/users
- * Cria novo usuário no Supabase e sincroniza com Stream Chat
+ * Cria novo usuário no Supabase Auth + public.users e sincroniza com Stream Chat
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, nome, avatar, role = 'user', permissions = [] } = body;
+    const { email, nome, avatar, role = 'user', password, permissions = [] } = body;
 
     // Validações básicas
     if (!email || !nome) {
       return NextResponse.json(
         { error: 'Email e nome são obrigatórios' },
+        { status: 400 }
+      );
+    }
+
+    // Validar senha (obrigatória para criar)
+    if (!password || password.length < 6) {
+      return NextResponse.json(
+        { error: 'Senha é obrigatória (mínimo 6 caracteres)' },
         { status: 400 }
       );
     }
@@ -89,10 +97,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Criar usuário no Supabase
+    // 1. Criar em auth.users PRIMEIRO (credenciais de login)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Confirmar email automaticamente
+    });
+
+    if (authError) {
+      console.error('Erro ao criar em auth.users:', authError);
+      return NextResponse.json(
+        { error: authError.message },
+        { status: 400 }
+      );
+    }
+
+    const authUserId = authData.user.id;
+
+    // 2. Criar em public.users com o MESMO ID do auth.users
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
       .insert({
+        id: authUserId, // ← Usar ID do auth.users
         email,
         nome,
         avatar,
