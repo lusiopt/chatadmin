@@ -225,11 +225,13 @@ export async function updateChannel(
   }
 
   // SDK v3: usar updateChannelPartial para partial updates com 'set'
+  console.log('[updateChannel] Enviando para Stream:', { type, id, set: updateData });
   const response = await streamClient.chat.updateChannelPartial({
     type,
     id,
     set: updateData,
   });
+  console.log('[updateChannel] Resposta raw do Stream:', JSON.stringify(response, null, 2));
 
   const channel = response.channel as any;
   return {
