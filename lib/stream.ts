@@ -212,9 +212,17 @@ export async function updateChannel(
   const streamClient = getStreamClient();
 
   const updateData: Record<string, any> = {};
-  if (params.name !== undefined) updateData.name = params.name;
-  if (params.image !== undefined) updateData.image = params.image;
-  if (params.data) Object.assign(updateData, params.data);
+  // Só incluir campos com valores válidos (não vazios)
+  if (params.name !== undefined && params.name !== '') updateData.name = params.name;
+  if (params.image !== undefined && params.image !== '') updateData.image = params.image;
+  if (params.data && Object.keys(params.data).length > 0) Object.assign(updateData, params.data);
+
+  // Se não há nada para atualizar, retornar o canal atual sem fazer request
+  if (Object.keys(updateData).length === 0) {
+    const currentChannel = await getChannel(type, id);
+    if (!currentChannel) throw new Error('Canal não encontrado');
+    return currentChannel;
+  }
 
   const response = await streamClient.chat.updateChannel({
     type,
