@@ -32,6 +32,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { IconPicker } from "@/components/ui/icon-picker"
 
 interface ChannelDetails {
@@ -49,6 +56,8 @@ interface Member {
   user?: {
     id: string
     name?: string
+    email?: string
+    image?: string
   }
   role?: string
   created_at?: string
@@ -86,6 +95,15 @@ export default function ChannelDetailsPage() {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState("")
   const [loadingUsers, setLoadingUsers] = useState(false)
+
+  // Estados para sheet de detalhes do membro
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [isMemberSheetOpen, setIsMemberSheetOpen] = useState(false)
+
+  // Estados para paginação de membros
+  const [membersPage, setMembersPage] = useState(1)
+  const [membersSearch, setMembersSearch] = useState("")
+  const MEMBERS_PER_PAGE = 20
 
   const [formData, setFormData] = useState({
     name: "",
@@ -239,6 +257,31 @@ export default function ChannelDetailsPage() {
       user.nome.toLowerCase().includes(query) ||
       user.email?.toLowerCase().includes(query)
     )
+  }
+
+  // Filtrar e paginar membros
+  const getFilteredMembers = () => {
+    if (!membersSearch.trim()) return members
+
+    const query = membersSearch.toLowerCase()
+    return members.filter(member =>
+      member.user_id.toLowerCase().includes(query) ||
+      member.user?.name?.toLowerCase().includes(query) ||
+      member.user?.id?.toLowerCase().includes(query)
+    )
+  }
+
+  const getPaginatedMembers = () => {
+    const filtered = getFilteredMembers()
+    const start = (membersPage - 1) * MEMBERS_PER_PAGE
+    return filtered.slice(start, start + MEMBERS_PER_PAGE)
+  }
+
+  const totalMembersPages = Math.ceil(getFilteredMembers().length / MEMBERS_PER_PAGE)
+
+  const handleMemberClick = (member: Member) => {
+    setSelectedMember(member)
+    setIsMemberSheetOpen(true)
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -558,122 +601,133 @@ export default function ChannelDetailsPage() {
         {/* Membros do Canal */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <CardTitle>Membros do Canal</CardTitle>
                 <CardDescription>
                   {members.length} membro(s) no canal
                 </CardDescription>
               </div>
-              <Dialog
-                open={isAddMemberDialogOpen}
-                onOpenChange={setIsAddMemberDialogOpen}
-              >
-                <DialogTrigger asChild>
-                  <Button size="sm">Adicionar Membro</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh]">
-                  <DialogHeader>
-                    <DialogTitle>Adicionar Membros</DialogTitle>
-                    <DialogDescription>
-                      Selecione os usuários que deseja adicionar ao canal
-                    </DialogDescription>
-                  </DialogHeader>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Buscar membros..."
+                  value={membersSearch}
+                  onChange={(e) => {
+                    setMembersSearch(e.target.value)
+                    setMembersPage(1)
+                  }}
+                  className="w-48"
+                />
+                <Dialog
+                  open={isAddMemberDialogOpen}
+                  onOpenChange={setIsAddMemberDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button size="sm">Adicionar Membro</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Membros</DialogTitle>
+                      <DialogDescription>
+                        Selecione os usuários que deseja adicionar ao canal
+                      </DialogDescription>
+                    </DialogHeader>
 
-                  <div className="space-y-4">
-                    {/* Campo de busca */}
-                    <div className="grid gap-2">
-                      <Label htmlFor="search-users">Buscar Usuários</Label>
-                      <Input
-                        id="search-users"
-                        placeholder="Buscar por ID ou nome..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-
-                    {/* Lista de usuários com checkboxes */}
-                    <div className="border rounded-lg">
-                      <div className="border-b p-3 bg-muted/50 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="select-all"
-                            checked={selectedUserIds.size > 0 && selectedUserIds.size === getFilteredUsers().length}
-                            onCheckedChange={toggleSelectAll}
-                          />
-                          <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
-                            Selecionar todos ({selectedUserIds.size} selecionados)
-                          </Label>
-                        </div>
+                    <div className="space-y-4">
+                      {/* Campo de busca */}
+                      <div className="grid gap-2">
+                        <Label htmlFor="search-users">Buscar Usuários</Label>
+                        <Input
+                          id="search-users"
+                          placeholder="Buscar por ID ou nome..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                       </div>
 
-                      <div className="max-h-[400px] overflow-y-auto">
-                        {loadingUsers ? (
-                          <div className="p-8 text-center text-muted-foreground">
-                            Carregando usuários...
+                      {/* Lista de usuários com checkboxes */}
+                      <div className="border rounded-lg">
+                        <div className="border-b p-3 bg-muted/50 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="select-all"
+                              checked={selectedUserIds.size > 0 && selectedUserIds.size === getFilteredUsers().length}
+                              onCheckedChange={toggleSelectAll}
+                            />
+                            <Label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                              Selecionar todos ({selectedUserIds.size} selecionados)
+                            </Label>
                           </div>
-                        ) : getFilteredUsers().length === 0 ? (
-                          <div className="p-8 text-center text-muted-foreground">
-                            {searchQuery ? "Nenhum usuário encontrado" : "Nenhum usuário disponível"}
-                          </div>
-                        ) : (
-                          getFilteredUsers().map((user) => (
-                            <div
-                              key={user.id}
-                              className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
-                              onClick={() => toggleUserSelection(user.id)}
-                            >
-                              <Checkbox
-                                id={`user-${user.id}`}
-                                checked={selectedUserIds.has(user.id)}
-                                onCheckedChange={() => toggleUserSelection(user.id)}
-                              />
-                              {/* Avatar */}
-                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-                                {user.avatar ? (
-                                  <img
-                                    src={user.avatar}
-                                    alt={user.nome}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <span className="text-lg font-medium text-muted-foreground">
-                                    {user.nome.charAt(0).toUpperCase()}
+                        </div>
+
+                        <div className="max-h-[400px] overflow-y-auto">
+                          {loadingUsers ? (
+                            <div className="p-8 text-center text-muted-foreground">
+                              Carregando usuários...
+                            </div>
+                          ) : getFilteredUsers().length === 0 ? (
+                            <div className="p-8 text-center text-muted-foreground">
+                              {searchQuery ? "Nenhum usuário encontrado" : "Nenhum usuário disponível"}
+                            </div>
+                          ) : (
+                            getFilteredUsers().map((user) => (
+                              <div
+                                key={user.id}
+                                className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
+                                onClick={() => toggleUserSelection(user.id)}
+                              >
+                                <Checkbox
+                                  id={`user-${user.id}`}
+                                  checked={selectedUserIds.has(user.id)}
+                                  onCheckedChange={() => toggleUserSelection(user.id)}
+                                />
+                                {/* Avatar */}
+                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {user.avatar ? (
+                                    <img
+                                      src={user.avatar}
+                                      alt={user.nome}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <span className="text-lg font-medium text-muted-foreground">
+                                      {user.nome.charAt(0).toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{user.nome}</p>
+                                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                                </div>
+                                {user.role && (
+                                  <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium flex-shrink-0">
+                                    {user.role}
                                   </span>
                                 )}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{user.nome}</p>
-                                <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                              </div>
-                              {user.role && (
-                                <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium flex-shrink-0">
-                                  {user.role}
-                                </span>
-                              )}
-                            </div>
-                          ))
-                        )}
+                            ))
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsAddMemberDialogOpen(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={handleAddMember}
-                      disabled={selectedUserIds.size === 0}
-                    >
-                      Adicionar {selectedUserIds.size > 0 && `(${selectedUserIds.size})`}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAddMemberDialogOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleAddMember}
+                        disabled={selectedUserIds.size === 0}
+                      >
+                        Adicionar {selectedUserIds.size > 0 && `(${selectedUserIds.size})`}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -681,46 +735,183 @@ export default function ChannelDetailsPage() {
               <div className="text-center py-8 text-muted-foreground">
                 Nenhum membro no canal
               </div>
+            ) : getFilteredMembers().length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhum membro encontrado para "{membersSearch}"
+              </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID do Usuário</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Função</TableHead>
-                    <TableHead>Adicionado em</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {members.map((member) => (
-                    <TableRow key={member.user_id}>
-                      <TableCell className="font-mono text-sm">
-                        {member.user_id}
-                      </TableCell>
-                      <TableCell>{member.user?.name || "-"}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium">
-                          {member.role || "member"}
-                        </span>
-                      </TableCell>
-                      <TableCell>{formatDate(member.created_at)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleRemoveMember(member.user_id)}
-                        >
-                          Remover
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+              <>
+                {/* Lista de membros em cards */}
+                <div className="space-y-2">
+                  {getPaginatedMembers().map((member) => (
+                    <div
+                      key={member.user_id}
+                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => handleMemberClick(member)}
+                    >
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {member.user?.image ? (
+                          <img
+                            src={member.user.image}
+                            alt={member.user?.name || "Usuário"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg font-medium text-primary">
+                            {(member.user?.name || member.user_id).charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {member.user?.name || member.user_id}
+                        </p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {member.user?.email || `ID: ${member.user_id.slice(0, 8)}...`}
+                        </p>
+                      </div>
+
+                      {/* Role badge */}
+                      <span className="hidden sm:inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium flex-shrink-0">
+                        {member.role || "member"}
+                      </span>
+
+                      {/* Data (mobile hidden) */}
+                      <span className="hidden md:block text-xs text-muted-foreground flex-shrink-0">
+                        {formatDate(member.created_at).split(",")[0]}
+                      </span>
+
+                      {/* Remover */}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleRemoveMember(member.user_id)
+                        }}
+                      >
+                        Remover
+                      </Button>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+
+                {/* Paginação */}
+                {totalMembersPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={membersPage === 1}
+                      onClick={() => setMembersPage(p => p - 1)}
+                    >
+                      Anterior
+                    </Button>
+                    <span className="text-sm text-muted-foreground px-4">
+                      Página {membersPage} de {totalMembersPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={membersPage === totalMembersPages}
+                      onClick={() => setMembersPage(p => p + 1)}
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
+
+        {/* Sheet de detalhes do membro */}
+        <Sheet open={isMemberSheetOpen} onOpenChange={setIsMemberSheetOpen}>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Detalhes do Membro</SheetTitle>
+              <SheetDescription>
+                Informações do usuário neste canal
+              </SheetDescription>
+            </SheetHeader>
+            {selectedMember && (
+              <div className="mt-6 space-y-6">
+                {/* Avatar grande */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                    {selectedMember.user?.image ? (
+                      <img
+                        src={selectedMember.user.image}
+                        alt={selectedMember.user?.name || "Usuário"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-3xl font-medium text-primary">
+                        {(selectedMember.user?.name || selectedMember.user_id).charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <h3 className="font-semibold text-lg">
+                      {selectedMember.user?.name || "Usuário"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedMember.user?.email || selectedMember.user_id}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Informações */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Função no Canal</span>
+                    <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium">
+                      {selectedMember.role || "member"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Adicionado em</span>
+                    <span className="text-sm">{formatDate(selectedMember.created_at)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-sm text-muted-foreground">Stream User ID</span>
+                    <span className="text-xs font-mono truncate max-w-[180px]">
+                      {selectedMember.user_id}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div className="space-y-2 pt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setIsMemberSheetOpen(false)
+                      router.push(`/users`)
+                    }}
+                  >
+                    Ver Lista de Usuários
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => {
+                      handleRemoveMember(selectedMember.user_id)
+                      setIsMemberSheetOpen(false)
+                    }}
+                  >
+                    Remover do Canal
+                  </Button>
+                </div>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   )
