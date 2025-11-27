@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getChannel, updateChannel, deleteChannel } from "@/lib/stream-chat";
+import { getChannel, updateChannel, deleteChannel } from "@/lib/stream";
 
 // GET /api/channels/[type]/[id] - Obtém detalhes de um canal
 export async function GET(
@@ -27,12 +27,12 @@ export async function GET(
       channel: {
         id: channel.id,
         type: channel.type,
-        name: channel.data?.name,
-        image: channel.data?.image,
-        member_count: channel.data?.member_count,
-        created_at: channel.data?.created_at,
-        updated_at: channel.data?.updated_at,
-        created_by: channel.data?.created_by,
+        name: channel.name,
+        image: channel.image,
+        member_count: channel.member_count,
+        created_at: channel.created_at,
+        updated_at: channel.updated_at,
+        created_by: channel.created_by,
       },
     });
   } catch (error) {
@@ -71,7 +71,7 @@ export async function PATCH(
       channel: {
         id: channel.id,
         type: channel.type,
-        name: channel.data?.name,
+        name: channel.name,
       },
     });
   } catch (error) {

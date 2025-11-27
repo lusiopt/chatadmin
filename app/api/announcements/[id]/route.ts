@@ -4,7 +4,7 @@ import {
   publishAnnouncement,
   removeAnnouncementFromFeeds,
   AnnouncementActivityData
-} from '@/lib/stream-feeds';
+} from '@/lib/stream';
 
 interface RouteParams {
   params: Promise<{ id: string }>;

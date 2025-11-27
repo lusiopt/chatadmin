@@ -158,8 +158,7 @@ chatadmin/
 │   └── ui/                 # shadcn/ui components
 ├── lib/                    # Clientes API e utils
 │   ├── api.ts              # Cliente Axios (baseURL: /chat)
-│   ├── stream-chat.ts      # Cliente Stream Chat API
-│   ├── stream-feeds.ts     # Cliente Stream Feeds v3 (avisos)
+│   ├── stream.ts           # SDK v3 Unificado (Chat + Feeds + Users + Upload)
 │   ├── supabase.ts         # Cliente Supabase
 │   ├── storage.ts          # Helpers Supabase Storage
 │   └── user-sync.ts        # Sync Supabase ↔ Stream
@@ -228,38 +227,47 @@ channel.update({ image: url });
 
 ## 🔌 Arquitetura de SDKs
 
-### Stream Chat (para Chat)
+### Stream SDK v3 Unificado
 ```
-Pacote: stream-chat v8.40.0
-Arquivo: lib/stream-chat.ts
-Uso: Gerenciamento de canais, membros, mensagens
+Pacote: @stream-io/node-sdk v0.7.21
+Arquivo: lib/stream.ts
+Uso: Chat + Feeds + Users + Upload (TUDO unificado)
 ```
 
-### Stream Feeds (para Avisos)
-```
-Pacote: @stream-io/node-sdk v0.7.21 (SDK v3)
-Arquivo: lib/stream-feeds.ts
-Uso: Publicação de avisos, upload de imagens
-```
+**📚 Documentação completa:** [`docs/STREAM-SDK-V3.md`](docs/STREAM-SDK-V3.md)
+- ~300 métodos documentados
+- Exemplos de uso para cada módulo
+- Solução para Feed Groups (404)
 
 **⚠️ IMPORTANTE:** O SDK v3 é diferente do SDK v2 (`getstream`). Não misturar!
 
-### Funções Disponíveis (lib/stream-feeds.ts)
+### Funções Disponíveis (lib/stream.ts)
 
 ```typescript
-// Upload de imagem para Stream CDN
-uploadImage(buffer: Buffer, filename: string, contentType: string)
-  → { file: string, thumbUrl?: string }
+// === CHAT (Canais e Membros) ===
+listChannels(filters, sort, options)        // Lista canais
+getChannel(type, id)                        // Busca canal
+createChannel(params)                       // Cria canal
+updateChannel(type, id, params)             // Atualiza canal
+deleteChannel(type, id)                     // Deleta canal
+addMembers(type, id, userIds)               // Adiciona membros
+removeMembers(type, id, userIds)            // Remove membros
+listMembers(type, id)                       // Lista membros
 
-// Publicar aviso em múltiplos feeds
-publishAnnouncement(temaSlugs: string[], data: AnnouncementActivityData)
-  → string[] (IDs das atividades)
+// === USERS (Usuários Stream) ===
+upsertUser(userData)                        // Cria/atualiza usuário
+deleteUser(userId, options)                 // Deleta usuário
+queryUsers(filters, sort, options)          // Busca usuários
+queryChannelsForUser(filters)               // Canais de um usuário
 
-// Remover aviso dos feeds
-removeAnnouncementFromFeeds(temaSlugs: string[], announcementId: string)
+// === FEEDS (Avisos) ===
+ensureFeedGroup(groupId)                    // Garante Feed Group existe
+publishAnnouncement(temaSlugs, data)        // Publica aviso
+removeAnnouncementFromFeeds(slugs, id)      // Remove aviso
+listAnnouncementsFromFeed(slug, limit)      // Lista avisos
 
-// Atualizar aviso (remove + republica)
-updateAnnouncementInFeeds(oldSlugs: string[], newSlugs: string[], data)
+// === UPLOAD (Imagens CDN) ===
+uploadImage(buffer, filename, contentType)  // Upload para Stream CDN
 ```
 
 ### Cliente Axios (lib/api.ts)
@@ -336,10 +344,10 @@ await streamClient.upsertUser({
 
 ## 📊 Status do Projeto
 
-**Versão:** 2.2.0 (Upload de Imagens para Avisos)
+**Versão:** 2.3.0 (Migração SDK v3 Unificado)
 **Status:** ✅ Em Desenvolvimento Ativo
 **Ambiente:** VM Azure (20.61.121.203)
-**Última Atualização:** 25 Novembro 2025
+**Última Atualização:** 27 Novembro 2025
 **URLs:**
 - Dev: https://dev.lusio.market/chat
 - Produção (futuro): https://chat.lusio.market
@@ -458,6 +466,26 @@ pm2 restart chatadmin
 
 ## 📋 Changelog
 
+### v2.3.0 (27 Nov 2025) - Migração SDK v3 Unificado
+- ✅ Unificação de 2 SDKs em 1 (`stream-chat` + `@stream-io/node-sdk` → apenas `@stream-io/node-sdk`)
+- ✅ Novo arquivo `lib/stream.ts` centraliza Chat, Feeds, Users e Upload
+- ✅ Removido `stream-chat` v8.40.0 do projeto
+- ✅ Removidos arquivos antigos: `lib/stream-chat.ts`, `lib/stream-feeds.ts`
+- 🔧 Todas as APIs migradas para usar funções do novo SDK unificado
+
+**Arquivos removidos:**
+- `lib/stream-chat.ts`
+- `lib/stream-feeds.ts`
+
+**Arquivos criados:**
+- `lib/stream.ts` - SDK v3 Unificado (~500 linhas)
+
+**APIs migradas:**
+- `app/api/channels/*` - Usando funções de `lib/stream.ts`
+- `app/api/users/*` - Via `lib/user-sync.ts` atualizado
+- `app/api/announcements/*` - Usando funções de `lib/stream.ts`
+- `app/api/upload/image` - Usando `uploadImage` de `lib/stream.ts`
+
 ### v2.2.0 (25 Nov 2025) - Upload de Imagens para Avisos
 - ✅ Upload de imagens funcionando (Stream CDN)
 - ✅ Migração Stream Feeds SDK v2 → v3 (`@stream-io/node-sdk`)
@@ -466,7 +494,6 @@ pm2 restart chatadmin
 - 🔧 Corrigido: PM2 executando código antigo (cache)
 
 **Arquivos principais modificados:**
-- `lib/stream-feeds.ts` - SDK v3 com uploadImage
 - `lib/api.ts` - Removido Content-Type default
 - `app/api/upload/image/route.ts` - Endpoint de upload
 - `components/announcements/ImageUploader.tsx` - UI de upload

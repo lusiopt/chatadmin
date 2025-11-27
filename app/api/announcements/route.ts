@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { publishAnnouncement, AnnouncementActivityData } from '@/lib/stream-feeds';
+import { publishAnnouncement, AnnouncementActivityData } from '@/lib/stream';
 
 /**
  * GET /api/announcements

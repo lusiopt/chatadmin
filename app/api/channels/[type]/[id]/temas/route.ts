@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { updateChannel } from '@/lib/stream-chat';
+import { updateChannel } from '@/lib/stream';
 
 /**
  * GET /api/channels/[type]/[id]/temas

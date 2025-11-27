@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadImage } from '@/lib/stream-feeds';
+import { uploadImage } from '@/lib/stream';
 
 /**
  * POST /api/upload/image

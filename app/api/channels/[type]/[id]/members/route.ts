@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listMembers, addMembers, removeMembers } from "@/lib/stream-chat";
+import { listMembers, addMembers, removeMembers } from "@/lib/stream";
 
 // GET /api/channels/[type]/[id]/members - Lista membros do canal
 export async function GET(

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listChannels, createChannel } from "@/lib/stream-chat";
+import { listChannels, createChannel } from "@/lib/stream";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/channels - Lista todos os canais
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       channel: {
         id: channel.id,
         type: channel.type,
-        name: channel.data?.name,
+        name: channel.name,
         temas,
       },
     });

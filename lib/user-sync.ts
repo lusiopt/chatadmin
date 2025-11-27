@@ -1,4 +1,11 @@
-import { getStreamChatClient } from './stream-chat';
+import {
+  upsertUser,
+  deleteUser,
+  queryChannelsForUser,
+  addMembers,
+  removeMembers,
+  listChannels,
+} from './stream';
 import { supabaseAdmin, Database } from './supabase';
 
 type User = Database['public']['Tables']['users']['Row'];
@@ -49,8 +56,6 @@ export async function syncUserToStream(
     const temasPermitidos = permissions?.map(p => p.tema) || [];
 
     // 3. Criar/atualizar usuário no Stream Chat
-    const streamClient = getStreamChatClient();
-
     const streamUserId = user.stream_user_id || user.id;
 
     console.log('[SYNC] Sincronizando usuário para Stream:', {
@@ -60,7 +65,7 @@ export async function syncUserToStream(
       role: user.role
     });
 
-    await streamClient.upsertUser({
+    await upsertUser({
       id: streamUserId,
       name: user.nome,
       image: user.avatar || undefined,
@@ -95,12 +100,10 @@ export async function syncUserToStream(
  */
 export async function deleteUserFromStream(streamUserId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const streamClient = getStreamChatClient();
-
     // Deletar permanentemente
-    await streamClient.deleteUser(streamUserId, {
-      mark_messages_deleted: true, // Marca mensagens como deletadas
-      hard_delete: true // Remove completamente
+    await deleteUser(streamUserId, {
+      mark_messages_deleted: true,
+      hard_delete: true
     });
 
     return { success: true };
@@ -137,10 +140,7 @@ export async function updateUserChannelMemberships(userId: string): Promise<{ su
       .map(p => p.tema) || [];
 
     // 2. Buscar todos os canais do Stream
-    const streamClient = getStreamChatClient();
-    const channels = await streamClient.queryChannels({
-      type: 'messaging'
-    });
+    const channels = await queryChannelsForUser({ type: 'messaging' });
 
     // 3. Para cada canal, verificar se usuário deve ser membro
     for (const channel of channels) {
@@ -153,15 +153,15 @@ export async function updateUserChannelMemberships(userId: string): Promise<{ su
         ? [...channelTemas, channelTemaLegacy]
         : channelTemas;
 
-      const isMember = channel.state.members[user.stream_user_id] !== undefined;
+      const isMember = channel.members[user.stream_user_id] !== undefined;
       const shouldBeMember = temasPermitidos.some(t => allChannelTemas.includes(t));
 
       if (shouldBeMember && !isMember) {
         // Adicionar usuário ao canal
-        await channel.addMembers([user.stream_user_id]);
+        await addMembers(channel.type, channel.id, [user.stream_user_id]);
       } else if (!shouldBeMember && isMember) {
         // Remover usuário do canal
-        await channel.removeMembers([user.stream_user_id]);
+        await removeMembers(channel.type, channel.id, [user.stream_user_id]);
       }
     }
 
@@ -248,10 +248,9 @@ export async function getUserAllowedChannels(userId: string): Promise<{
     // 2. Buscar canais do Stream filtrados por temas (array)
     // Stream SDK suporta $in em arrays: busca canais onde data.temas
     // contenha pelo menos um dos temas permitidos
-    const streamClient = getStreamChatClient();
-    const channels = await streamClient.queryChannels({
+    const channels = await listChannels({
       type: 'messaging',
-      'data.temas': { $in: temasPermitidos }
+      'temas': { $in: temasPermitidos }
     });
 
     return { channels };
