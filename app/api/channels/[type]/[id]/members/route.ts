@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listMembers, addMembers, removeMembers } from "@/lib/stream";
-import { createClient } from "@supabase/supabase-js";
-
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!
-  );
-}
+import { supabaseAdmin } from "@/lib/supabase";
 
 // GET /api/channels/[type]/[id]/members - Lista membros do canal
 export async function GET(
@@ -22,9 +15,8 @@ export async function GET(
 
     // Buscar dados reais dos usuários do Supabase
     const streamUserIds = members.map(m => m.user_id);
-    const supabase = getSupabaseClient();
 
-    const { data: supabaseUsers } = await supabase
+    const { data: supabaseUsers } = await supabaseAdmin
       .from("users")
       .select("id, nome, email, avatar, stream_user_id")
       .or(`stream_user_id.in.(${streamUserIds.join(",")}),id.in.(${streamUserIds.join(",")})`);
