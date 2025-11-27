@@ -443,7 +443,7 @@ export async function publishAnnouncement(
         tema: data.temas[0]?.nome || '',
         importancia: data.importancias?.[0]?.nome || 'Normal',
         template: data.template || 'hero',
-        image_url: data.image_url || '',
+        imageURLs: data.image_url ? [data.image_url] : [],
         link_url: data.link_url || '',
         link_text: data.link_text || '',
         temas: data.temas,
