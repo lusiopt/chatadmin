@@ -264,11 +264,15 @@ export async function addMembers(
 ): Promise<void> {
   const streamClient = getStreamClient();
 
-  await streamClient.chat.updateChannel({
+  console.log(`[addMembers] Adicionando membros ao canal ${type}:${id}:`, userIds);
+
+  const response = await streamClient.chat.updateChannel({
     type,
     id,
     add_members: userIds.map(userId => ({ user_id: userId })),
   });
+
+  console.log(`[addMembers] Resposta do Stream:`, JSON.stringify(response, null, 2));
 }
 
 /**
