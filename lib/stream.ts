@@ -224,11 +224,12 @@ export async function updateChannel(
     return currentChannel;
   }
 
-  const response = await streamClient.chat.updateChannel({
+  // SDK v3: usar updateChannelPartial para partial updates com 'set'
+  const response = await streamClient.chat.updateChannelPartial({
     type,
     id,
     set: updateData,
-  } as any);
+  });
 
   const channel = response.channel as any;
   return {
