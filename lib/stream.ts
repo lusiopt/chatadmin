@@ -121,16 +121,17 @@ export async function listChannels(
 
   return (response.channels || []).map(ch => {
     const channel = ch.channel as any;
+    // SDK v3: name e image estão em channel.custom
     return {
       id: channel?.id || '',
       type: channel?.type || 'messaging',
-      name: channel?.name,
-      image: channel?.image,
+      name: channel?.name || channel?.custom?.name,
+      image: channel?.image || channel?.custom?.image,
       member_count: channel?.member_count,
       created_at: channel?.created_at,
       updated_at: channel?.updated_at,
       created_by: channel?.created_by as { id: string; name?: string } | undefined,
-      temas: channel?.temas as string[] | undefined,
+      temas: channel?.temas || channel?.custom?.temas as string[] | undefined,
     };
   });
 }
@@ -154,16 +155,17 @@ export async function getChannel(
     if (!response.channel) return null;
 
     const channel = response.channel as any;
+    // SDK v3: name e image estão em channel.custom
     return {
       id: channel.id || id,
       type: channel.type || type,
-      name: channel.name,
-      image: channel.image,
+      name: channel.name || channel.custom?.name,
+      image: channel.image || channel.custom?.image,
       member_count: channel.member_count,
       created_at: channel.created_at,
       updated_at: channel.updated_at,
       created_by: channel.created_by as { id: string; name?: string } | undefined,
-      temas: channel.temas as string[] | undefined,
+      temas: channel.temas || channel.custom?.temas as string[] | undefined,
     };
   } catch (error) {
     console.error('Erro ao buscar canal:', error);
@@ -225,20 +227,19 @@ export async function updateChannel(
   }
 
   // SDK v3: usar updateChannelPartial para partial updates com 'set'
-  console.log('[updateChannel] Enviando para Stream:', { type, id, set: updateData });
   const response = await streamClient.chat.updateChannelPartial({
     type,
     id,
     set: updateData,
   });
-  console.log('[updateChannel] Resposta raw do Stream:', JSON.stringify(response, null, 2));
 
   const channel = response.channel as any;
+  // SDK v3: name e image estão em channel.custom
   return {
     id: channel?.id || id,
     type: channel?.type || type,
-    name: channel?.name,
-    image: channel?.image,
+    name: channel?.name || channel?.custom?.name,
+    image: channel?.image || channel?.custom?.image,
     member_count: channel?.member_count,
     created_at: channel?.created_at,
     updated_at: channel?.updated_at,
