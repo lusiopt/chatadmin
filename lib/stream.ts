@@ -301,11 +301,18 @@ export async function listMembers(
 ): Promise<Array<{ user_id: string; user?: any; role?: string; created_at?: string | Date }>> {
   const streamClient = getStreamClient();
 
+  console.log(`[listMembers] Buscando membros do canal ${type}:${id}`);
+
+  // SDK v3: queryMembers precisa de payload com type, id, filter_conditions
   const response = await streamClient.chat.queryMembers({
-    type,
-    id,
-    filter_conditions: {},
-  } as any);
+    payload: {
+      type,
+      id,
+      filter_conditions: {},
+    },
+  });
+
+  console.log(`[listMembers] Encontrados ${response.members?.length || 0} membros`);
 
   return (response.members || []).map(member => ({
     user_id: member.user_id || '',
