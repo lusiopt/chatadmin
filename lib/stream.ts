@@ -429,13 +429,22 @@ export async function publishAnnouncement(
   const feeds = temaSlugs.map(slug => `${slug}:global`);
 
   try {
+    // Construir attachments para imagens (campo nativo do Stream)
+    const attachments = data.image_url ? [{
+      type: 'image',
+      image_url: data.image_url,
+      thumb_url: data.image_url,
+    }] : [];
+
     const response = await streamClient.feeds.addActivity({
       type: 'announce',
       feeds: feeds,
       text: data.content.substring(0, 200),
       id: `announcement:${data.id}`,
       user_id: 'admin',
-      // Custom fields para iOS
+      // Attachments para mídia (campo nativo)
+      attachments: attachments,
+      // Custom fields para metadados de texto
       custom: {
         message: data.content.substring(0, 200),
         fullContent: data.content,
@@ -443,7 +452,6 @@ export async function publishAnnouncement(
         tema: data.temas[0]?.nome || '',
         importancia: data.importancias?.[0]?.nome || 'Normal',
         template: data.template || 'hero',
-        imageURLs: data.image_url ? [data.image_url] : [],
         link_url: data.link_url || '',
         link_text: data.link_text || '',
         temas: data.temas,
