@@ -303,19 +303,20 @@ export async function listMembers(
 
   console.log(`[listMembers] Buscando membros do canal ${type}:${id}`);
 
-  // SDK v3: queryMembers precisa de payload com type, id, filter_conditions
-  const response = await streamClient.chat.queryMembers({
-    payload: {
-      type,
-      id,
-      filter_conditions: {},
+  // SDK v3: usar getOrCreateChannel com state:true para obter membros
+  const response = await streamClient.chat.getOrCreateChannel({
+    type,
+    id,
+    data: {
+      // Forçar retorno de state com membros
     },
   });
 
-  console.log(`[listMembers] Encontrados ${response.members?.length || 0} membros`);
+  const members = (response as any).members || [];
+  console.log(`[listMembers] Encontrados ${members.length} membros`);
 
-  return (response.members || []).map(member => ({
-    user_id: member.user_id || '',
+  return members.map((member: any) => ({
+    user_id: member.user_id || member.user?.id || '',
     user: member.user,
     role: member.role as string | undefined,
     created_at: member.created_at,
