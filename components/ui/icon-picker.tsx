@@ -119,12 +119,11 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
     setImageError(false)
   }, [value])
 
-  // Converter nome do ícone para URL do SVG estático
+  // Converter nome do ícone para URL do Supabase Storage
   const iconNameToUrl = (iconName: string): string => {
-    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || ""
     // Converter PascalCase para kebab-case (MessageSquare -> message-square)
     const kebabName = iconName.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()
-    return `https://dev.lusio.market${basePath}/icons/${kebabName}.png`
+    return `https://admiywnhpbezcgtnebvw.supabase.co/storage/v1/object/public/icon-library/${kebabName}.png`
   }
 
   const handleIconSelect = (iconName: string) => {
@@ -160,7 +159,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
       formData.append('file', file)
       formData.append('type', 'channel-icon')
 
-      const { data } = await api.post('/api/upload/local', formData, {
+      const { data } = await api.post('/api/upload/channel-icon', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
 
