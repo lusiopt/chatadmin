@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listMembers, addMembers, removeMembers } from "@/lib/stream";
+import { createClient } from "@supabase/supabase-js";
+
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!
+  );
+}
 
 // GET /api/channels/[type]/[id]/members - Lista membros do canal
 export async function GET(
@@ -12,9 +20,40 @@ export async function GET(
 
     const members = await listMembers(type, id);
 
+    // Buscar dados reais dos usuários do Supabase
+    const streamUserIds = members.map(m => m.user_id);
+    const supabase = getSupabaseClient();
+
+    const { data: supabaseUsers } = await supabase
+      .from("users")
+      .select("id, nome, email, avatar, stream_user_id")
+      .or(`stream_user_id.in.(${streamUserIds.join(",")}),id.in.(${streamUserIds.join(",")})`);
+
+    // Criar mapa de stream_user_id/id -> dados do usuário
+    const userMap = new Map<string, any>();
+    supabaseUsers?.forEach(user => {
+      if (user.stream_user_id) userMap.set(user.stream_user_id, user);
+      if (user.id) userMap.set(user.id, user);
+    });
+
+    // Enriquecer membros com dados do Supabase
+    const enrichedMembers = members.map(member => {
+      const supabaseUser = userMap.get(member.user_id);
+      return {
+        ...member,
+        user: {
+          ...member.user,
+          id: member.user_id,
+          name: supabaseUser?.nome || member.user?.name || member.user_id,
+          email: supabaseUser?.email || member.user?.email,
+          image: supabaseUser?.avatar || member.user?.image,
+        },
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      members,
+      members: enrichedMembers,
     });
   } catch (error) {
     console.error("Erro ao listar membros:", error);

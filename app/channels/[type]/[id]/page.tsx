@@ -767,10 +767,10 @@ export default function ChannelDetailsPage() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
-                          {member.user?.name || member.user_id}
+                          {member.user?.name || "Usuário"}
                         </p>
                         <p className="text-sm text-muted-foreground truncate">
-                          {member.user?.email || `ID: ${member.user_id.slice(0, 8)}...`}
+                          {member.user?.email || "Sem email"}
                         </p>
                       </div>
 
@@ -851,7 +851,7 @@ export default function ChannelDetailsPage() {
                       />
                     ) : (
                       <span className="text-3xl font-medium text-primary">
-                        {(selectedMember.user?.name || selectedMember.user_id).charAt(0).toUpperCase()}
+                        {(selectedMember.user?.name || "U").charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -860,7 +860,7 @@ export default function ChannelDetailsPage() {
                       {selectedMember.user?.name || "Usuário"}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {selectedMember.user?.email || selectedMember.user_id}
+                      {selectedMember.user?.email || "Sem email"}
                     </p>
                   </div>
                 </div>
@@ -876,12 +876,6 @@ export default function ChannelDetailsPage() {
                   <div className="flex justify-between items-center py-2 border-b">
                     <span className="text-sm text-muted-foreground">Adicionado em</span>
                     <span className="text-sm">{formatDate(selectedMember.created_at)}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 border-b">
-                    <span className="text-sm text-muted-foreground">Stream User ID</span>
-                    <span className="text-xs font-mono truncate max-w-[180px]">
-                      {selectedMember.user_id}
-                    </span>
                   </div>
                 </div>
 
