@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { syncUserToStream, createAuditLog } from '@/lib/user-sync';
+import { syncUserToStream, updateUserChannelMemberships, createAuditLog } from '@/lib/user-sync';
 
 /**
  * GET /api/users
@@ -174,7 +174,14 @@ export async function POST(request: NextRequest) {
       console.error('Erro ao sincronizar com Stream:', syncResult.error);
     }
 
-    // 4. Criar audit log
+    // 4. Sincronizar memberships dos canais
+    const membershipResult = await updateUserChannelMemberships(user.id);
+
+    if (!membershipResult.success) {
+      console.error('Erro ao sincronizar canais:', membershipResult.error);
+    }
+
+    // 5. Criar audit log
     await createAuditLog(
       null,
       'create_user',

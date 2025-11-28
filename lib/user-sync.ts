@@ -116,10 +116,11 @@ export async function deleteUserFromStream(streamUserId: string): Promise<{ succ
 /**
  * Atualiza membros dos canais baseado nas permissões do usuário
  * Remove de canais que perdeu acesso e adiciona aos que ganhou
+ * Usa a view user_allowed_channels que faz o JOIN correto com tema_id
  */
 export async function updateUserChannelMemberships(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Buscar usuário e permissões
+    // 1. Buscar stream_user_id
     const { data: user } = await supabaseAdmin
       .from('users')
       .select('stream_user_id')
@@ -130,38 +131,31 @@ export async function updateUserChannelMemberships(userId: string): Promise<{ su
       return { success: false, error: 'Stream user ID não encontrado' };
     }
 
-    const { data: permissions } = await supabaseAdmin
-      .from('user_permissions')
-      .select('*')
+    // 2. Buscar canais permitidos usando a VIEW (já faz JOIN correto com tema_id)
+    const { data: allowedChannels } = await supabaseAdmin
+      .from('user_allowed_channels')
+      .select('stream_channel_id')
       .eq('user_id', userId);
 
-    const temasPermitidos = permissions
-      ?.filter(p => p.can_view_chat)
-      .map(p => p.tema) || [];
+    const allowedChannelIds = allowedChannels?.map(c => c.stream_channel_id) || [];
 
-    // 2. Buscar todos os canais do Stream
+    console.log(`[SYNC] Usuário ${userId} tem acesso a ${allowedChannelIds.length} canais:`, allowedChannelIds);
+
+    // 3. Buscar todos os canais do Stream
     const channels = await queryChannelsForUser({ type: 'messaging' });
 
-    // 3. Para cada canal, verificar se usuário deve ser membro
+    // 4. Para cada canal, verificar se usuário deve ser membro
     for (const channel of channels) {
-      // Suporta tanto array (novo) quanto string (legado)
-      const channelTemas = channel.data?.temas as string[] || [];
-      const channelTemaLegacy = channel.data?.tema as string | undefined;
-
-      // Combina temas do array com tema legado (se existir)
-      const allChannelTemas = channelTemaLegacy
-        ? [...channelTemas, channelTemaLegacy]
-        : channelTemas;
-
+      const fullChannelId = `${channel.type}:${channel.id}`;
       const isMember = channel.members[user.stream_user_id] !== undefined;
-      const shouldBeMember = temasPermitidos.some(t => allChannelTemas.includes(t));
+      const shouldBeMember = allowedChannelIds.includes(fullChannelId);
 
       if (shouldBeMember && !isMember) {
-        // Adicionar usuário ao canal
         await addMembers(channel.type, channel.id, [user.stream_user_id]);
+        console.log(`[SYNC] ✅ Adicionado ${user.stream_user_id} ao canal ${fullChannelId}`);
       } else if (!shouldBeMember && isMember) {
-        // Remover usuário do canal
         await removeMembers(channel.type, channel.id, [user.stream_user_id]);
+        console.log(`[SYNC] ❌ Removido ${user.stream_user_id} do canal ${fullChannelId}`);
       }
     }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { syncUserToStream, deleteUserFromStream, createAuditLog } from '@/lib/user-sync';
+import { syncUserToStream, updateUserChannelMemberships, deleteUserFromStream, createAuditLog } from '@/lib/user-sync';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -145,7 +145,14 @@ export async function PATCH(
       console.error('Erro ao sincronizar com Stream:', syncResult.error);
     }
 
-    // 4. Criar audit log
+    // 4. Sincronizar memberships dos canais (especialmente importante após mudar permissões)
+    const membershipResult = await updateUserChannelMemberships(id);
+
+    if (!membershipResult.success) {
+      console.error('Erro ao sincronizar canais:', membershipResult.error);
+    }
+
+    // 5. Criar audit log
     await createAuditLog(
       null,
       'update_user',
@@ -156,6 +163,7 @@ export async function PATCH(
     return NextResponse.json({
       user,
       stream_synced: syncResult.success,
+      channels_synced: membershipResult.success,
       message: 'Usuário atualizado com sucesso'
     });
 
