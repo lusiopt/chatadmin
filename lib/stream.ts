@@ -420,16 +420,22 @@ export async function queryChannelsForUser(
 // ============================================================================
 
 /**
- * Garante que um Feed Group existe (idempotente)
+ * Garante que um Feed existe (cria grupo + feed automaticamente)
+ * getOrCreateFeed cria o Feed Group se não existir, e depois o Feed
  */
-export async function ensureFeedGroup(groupId: string): Promise<void> {
+export async function ensureFeed(groupId: string, feedId: string = 'global'): Promise<void> {
   const streamClient = getStreamClient();
 
   try {
-    await streamClient.feeds.getOrCreateFeedGroup({ id: groupId });
+    await streamClient.feeds.getOrCreateFeed({
+      type: groupId,
+      id: feedId,
+      data: {}
+    });
+    console.log(`✅ Feed ${groupId}:${feedId} garantido`);
   } catch (error) {
-    console.error(`Erro ao criar Feed Group ${groupId}:`, error);
-    // Não propaga erro - pode já existir
+    console.error(`Erro ao criar Feed ${groupId}:${feedId}:`, error);
+    throw error; // Propagar erro para não falhar silenciosamente
   }
 }
 
@@ -442,9 +448,9 @@ export async function publishAnnouncement(
 ): Promise<string[]> {
   const streamClient = getStreamClient();
 
-  // Garantir que os Feed Groups existem
+  // Garantir que os Feeds existem (grupo + feed)
   for (const slug of temaSlugs) {
-    await ensureFeedGroup(slug);
+    await ensureFeed(slug, 'global');
   }
 
   // Construir lista de feeds no formato "grupo:id"
