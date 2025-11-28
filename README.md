@@ -175,9 +175,16 @@ chatadmin/
 ### Supabase (PostgreSQL)
 
 **Tabelas:**
-- `users` - Cadastro de usuários
-- `user_permissions` - Permissões por tema
+- `users` - Cadastro de usuários (id, email, nome, avatar, role, status, stream_user_id)
+- `user_permissions` - Permissões granulares por tema:
+  - Campos: id, user_id, tema (slug), tema_id (UUID)
+  - Permissões: can_view_chat, can_send_messages, can_view_announcements, can_create_announcements, can_moderate, can_delete_messages
+- `temas` - Temas disponíveis (id, slug, nome, cor)
 - `audit_logs` - Logs de ações administrativas
+
+**Views:**
+- `user_allowed_temas` - Temas que o usuário pode acessar
+- `user_allowed_channels` - Canais que o usuário pode acessar (usado pelo iOS)
 
 **Storage Buckets:**
 - `avatars` - Fotos de perfil (2MB max)
@@ -334,7 +341,8 @@ await streamClient.upsertUser({
 
 ### 🚧 Em Desenvolvimento
 - [ ] Publicação de avisos no Activity Feed do iOS
-- [ ] Migração de 58 ícones para Supabase Storage
+- [ ] Migração de 58 ícones para Supabase Storage (bucket `icon-library`)
+- [ ] Atualizar avatar no Stream Chat quando usuário muda no iOS
 
 ### 📋 Planejado
 - [ ] Autenticação via Supabase Auth
@@ -344,10 +352,10 @@ await streamClient.upsertUser({
 
 ## 📊 Status do Projeto
 
-**Versão:** 2.3.0 (Migração SDK v3 Unificado)
+**Versão:** 2.4.0 (Sincronização iOS Completa)
 **Status:** ✅ Em Desenvolvimento Ativo
 **Ambiente:** VM Azure (20.61.121.203)
-**Última Atualização:** 27 Novembro 2025
+**Última Atualização:** 28 Novembro 2025
 **URLs:**
 - Dev: https://dev.lusio.market/chat
 - Produção (futuro): https://chat.lusio.market
@@ -465,6 +473,12 @@ pm2 restart chatadmin
 ---
 
 ## 📋 Changelog
+
+### v2.4.0 (28 Nov 2025) - Sincronização iOS Completa
+- ✅ Views `user_allowed_temas` e `user_allowed_channels` para permissões iOS
+- ✅ Sincronização de avatar completa (Supabase → Stream Chat → iOS)
+- ✅ Documentação atualizada com referências cruzadas ao StreamChat iOS
+- ✅ Alinhamento de campos de perfil (nome, avatar) entre Web e iOS
 
 ### v2.3.0 (27 Nov 2025) - Migração SDK v3 Unificado
 - ✅ Unificação de 2 SDKs em 1 (`stream-chat` + `@stream-io/node-sdk` → apenas `@stream-io/node-sdk`)
