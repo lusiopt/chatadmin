@@ -428,8 +428,8 @@ export async function ensureFeed(groupId: string, feedId: string = 'global'): Pr
 
   try {
     await streamClient.feeds.getOrCreateFeed({
-      type: groupId,
-      id: feedId,
+      feed_group_id: groupId,
+      feed_id: feedId,
       data: {}
     });
     console.log(`✅ Feed ${groupId}:${feedId} garantido`);
