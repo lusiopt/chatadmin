@@ -339,17 +339,15 @@ export async function upsertUser(userData: {
 }): Promise<void> {
   const streamClient = getStreamClient();
 
-  await streamClient.upsertUsers({
-    users: [
-      {
-        id: userData.id,
-        name: userData.name,
-        image: userData.image,
-        role: userData.role,
-        ...userData.custom,
-      },
-    ],
-  });
+  await streamClient.upsertUsers([
+    {
+      id: userData.id,
+      name: userData.name,
+      image: userData.image,
+      role: userData.role,
+      ...userData.custom,
+    },
+  ]);
 }
 
 /**
