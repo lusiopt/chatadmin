@@ -340,16 +340,16 @@ export async function upsertUser(userData: {
   const streamClient = getStreamClient();
 
   await streamClient.upsertUsers({
-    users: {
-      [userData.id]: {
+    users: [
+      {
         id: userData.id,
         name: userData.name,
         image: userData.image,
         role: userData.role,
         ...userData.custom,
       },
-    },
-  } as any);
+    ],
+  });
 }
 
 /**
