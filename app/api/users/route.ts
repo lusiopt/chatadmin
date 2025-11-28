@@ -147,9 +147,21 @@ export async function POST(request: NextRequest) {
 
     // 2. Criar permissões granulares para cada tema
     if (permissions.length > 0) {
+      // Buscar tema_ids dos slugs (mesmo padrão do iOS)
+      const slugs = permissions.map((p: any) => p.tema);
+      const { data: temasData } = await supabaseAdmin
+        .from('temas')
+        .select('id, slug')
+        .in('slug', slugs);
+
+      const temaIdMap = Object.fromEntries(
+        (temasData || []).map((t: any) => [t.slug, t.id])
+      );
+
       const permissionsToInsert = permissions.map((p: any) => ({
         user_id: user.id,
         tema: p.tema,
+        tema_id: temaIdMap[p.tema] || null,
         can_view_chat: p.can_view_chat ?? true,
         can_send_messages: p.can_send_messages ?? true,
         can_view_announcements: p.can_view_announcements ?? true,
