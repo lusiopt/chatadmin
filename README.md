@@ -268,7 +268,7 @@ queryUsers(filters, sort, options)          // Busca usuários
 queryChannelsForUser(filters)               // Canais de um usuário
 
 // === FEEDS (Avisos) ===
-ensureFeedGroup(groupId)                    // Garante Feed Group existe
+ensureFeed(groupId, feedId)                 // Garante Feed existe (grupo + feed)
 publishAnnouncement(temaSlugs, data)        // Publica aviso
 removeAnnouncementFromFeeds(slugs, id)      // Remove aviso
 listAnnouncementsFromFeed(slug, limit)      // Lista avisos
@@ -340,7 +340,7 @@ await streamClient.upsertUser({
 - [x] Upload de avatares via interface
 
 ### 🚧 Em Desenvolvimento
-- [ ] Publicação de avisos no Activity Feed do iOS
+- [x] ~~Publicação de avisos no Activity Feed do iOS~~ ✅ v2.5.0
 - [ ] Migração de 58 ícones para Supabase Storage (bucket `icon-library`)
 - [ ] Atualizar avatar no Stream Chat quando usuário muda no iOS
 
@@ -352,10 +352,10 @@ await streamClient.upsertUser({
 
 ## 📊 Status do Projeto
 
-**Versão:** 2.4.0 (Sincronização iOS Completa)
+**Versão:** 2.5.0 (Stream Feeds Fix)
 **Status:** ✅ Em Desenvolvimento Ativo
 **Ambiente:** VM Azure (20.61.121.203)
-**Última Atualização:** 28 Novembro 2025
+**Última Atualização:** 29 Novembro 2025
 **URLs:**
 - Dev: https://dev.lusio.market/chat
 - Produção (futuro): https://chat.lusio.market
@@ -473,6 +473,19 @@ pm2 restart chatadmin
 ---
 
 ## 📋 Changelog
+
+### v2.5.0 (29 Nov 2025) - Stream Feeds Fix
+- ✅ **Fix crítico: Publicação de avisos no Stream Feeds**
+  - Problema: `ensureFeedGroup()` só criava o grupo, não o feed
+  - Avisos falhavam silenciosamente (feed não existia)
+  - Solução: nova função `ensureFeed()` usando `getOrCreateFeed()`
+- ✅ **Fix: tema_id preenchido automaticamente**
+  - Problema: ChatAdmin não preenchia `tema_id` em `user_permissions`
+  - iOS não conseguia filtrar canais corretamente
+  - Solução: buscar `tema_id` da tabela `temas` ao criar permissões
+- ✅ Propagação de erros no `ensureFeed()` (throw em vez de engolir)
+- ✅ Logs melhorados para debugging de publicação
+- 🔧 Migration para corrigir registros antigos sem `tema_id`
 
 ### v2.4.0 (28 Nov 2025) - Sincronização iOS Completa
 - ✅ Views `user_allowed_temas` e `user_allowed_channels` para permissões iOS
